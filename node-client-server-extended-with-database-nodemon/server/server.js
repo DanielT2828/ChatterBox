@@ -26,6 +26,14 @@ connection.query("CREATE TABLE IF NOT EXISTS table1 (task_id INT AUTO_INCREMENT 
     console.log('Answer: ', results);
 });
 */
+
+const { MongoClient } = require('mongodb');
+// or as an es module:
+// import { MongoClient } from 'mongodb'
+
+// Connection URL
+const url = 'mongodb://root:example@mongo';
+const client = new MongoClient(url);
 // See readme.md for more information about that.
 
 // Check the connection
