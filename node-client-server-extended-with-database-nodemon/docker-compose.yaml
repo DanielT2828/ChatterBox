@@ -2,8 +2,8 @@ version: '3.3'
 services:
   server:
     build: server
-    ports:
-      - "8080:8080"
+    #ports:
+     # - "8080:8080"
     restart: always
     environment:
       MYSQL_DATABASE: exampledb
@@ -37,3 +37,20 @@ services:
       - 8085:80
     environment:
       PMA_HOST: meinecooledb
+
+      web:
+  image: nginx
+  volumes:
+   - ./loadbalancer:/etc/nginx/templates
+  ports:
+   - "8080:80"
+  environment:
+   - NGINX_HOST=foobar.com
+   - NGINX_PORT=80
+
+     mongo:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
