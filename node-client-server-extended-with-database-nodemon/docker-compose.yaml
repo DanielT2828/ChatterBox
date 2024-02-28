@@ -12,7 +12,7 @@ services:
       - meinecooledb
     depends_on:
       - meinecooledb
-    command: nodemon -L server.js
+    command: nodemon -L server.js   #muss am ende gelöscht werden!!!!!!!!!!!
     volumes:
       - ./server:/usr/src/app:Z
   meinecooledb:
