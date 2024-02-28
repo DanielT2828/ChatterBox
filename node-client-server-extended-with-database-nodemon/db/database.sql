@@ -27,6 +27,15 @@ SET time_zone = "+00:00";
 -- Table structure for table `table1`
 --
 
+
+CREATE TABLE Benutzer{
+  ID INT AUTO_INCREMENT PRIMARY KEY,
+  Benutzername VARCHAR(255) NOT NULL,
+  Passwort VARCHAR(255) NOT NULL
+};
+
+INSERT INTO Benutzer (ID, Benutzername, Passwort) VALUES (0, 'admin', 'passwort');
+
 CREATE TABLE `table1` (
   `task_id` int(11) NOT NULL,
   `title` varchar(255) NOT NULL,
