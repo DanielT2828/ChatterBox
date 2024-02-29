@@ -2,18 +2,21 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const hostname = '0.0.0.0'; // Wichtig: Verwenden Sie 0.0.0.0 statt 127.0.0.1
+const hostname = '0.0.0.0';
 const port = 8088;
 
 const server = http.createServer((req, res) => {
-    // Pfad zur index.html Datei
-    const filePath = path.join(__dirname, 'index.html');
+    let filePath = path.join(__dirname, req.url === '/' ? 'index.html' : req.url);
 
-    // Lesen und Senden der index.html Datei
+    // Einfache Route für /login
+    if (req.url === '/login') {
+        filePath = path.join(__dirname, 'login.html');
+    }
+
     fs.readFile(filePath, {encoding: 'utf-8'}, (err, data) => {
         if (err) {
-            res.writeHead(500, {'Content-Type': 'text/plain'});
-            res.end('Fehler beim Laden der Seite');
+            res.writeHead(404, {'Content-Type': 'text/plain'});
+            res.end('Seite nicht gefunden');
         } else {
             res.writeHead(200, {'Content-Type': 'text/html'});
             res.end(data);
