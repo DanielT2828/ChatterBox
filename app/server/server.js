@@ -1,6 +1,11 @@
-'use strict';
 
+// index.js
 const express = require('express');
+const app = express();
+app.get('/', (req, res) => {
+  res.send('Hello World!')
+})
+app.listen(8000, () => console.log('Server is up and running'));
 
 // Database
 const mysql = require('mysql');
