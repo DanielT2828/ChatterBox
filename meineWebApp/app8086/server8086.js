@@ -2,7 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const hostname = '0.0.0.0';
+const hostname = '0.0.0.0'; //Nicht 127.0.0.1
 const port = 8088;
 
 const server = http.createServer((req, res) => {
