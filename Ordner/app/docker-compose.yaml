@@ -1,0 +1,59 @@
+version: '3.3'
+services:
+  server:
+    build: ../server
+    restart: always
+    environment:
+      MYSQL_DATABASE: exampledb
+      MYSQL_USER: exampleuser
+      MYSQL_PASSWORD: examplepass
+      MYSQL_HOSTNAME: meinecooledb
+    depends_on:
+      - meinecooledb
+    command: nodemon -L server.js
+    volumes:
+      - ../server:/usr/src/app:Z
+
+  meinecooledb:
+    build: ../db
+    restart: always
+    environment:
+      MYSQL_DATABASE: exampledb
+      MYSQL_USER: exampleuser
+      MYSQL_PASSWORD: examplepass
+      MYSQL_ROOT_PASSWORD: rootpw
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    ports:
+      - 8085:80
+    environment:
+      PMA_HOST: meinecooledb
+
+  web:  
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./loadbalancer/nginx.conf:/etc/nginx/nginx.conf
+      - ./loadbalancer/default.conf:/etc/nginx/conf.d/default.conf
+      - ../server/public:/usr/share/nginx/html:ro
+    depends_on:
+      - server
+
+  app1:
+    build: ../server
+    volumes:
+      - ../server:/usr/src/app
+    working_dir: /usr/src/app
+    command: node server.js
+    ports:
+      - "8087:8087"
+
+  mongo:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
