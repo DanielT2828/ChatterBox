@@ -1,9 +1,9 @@
 version: '3.3'
 services:
-  server:
-    build: server
+  server1:
+    build: server1
     ports:
-      - "8080:8080"
+      - "8087:8080"
     restart: always
     environment:
       MYSQL_DATABASE: exampledb
