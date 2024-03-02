@@ -57,18 +57,31 @@ const HOST = '0.0.0.0';
 
 // App
 const app = express();
-/*
-// Features for JSON Body 
+
+
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Entrypoint - call it with: http://localhost:8080/ -> redirect you to http://localhost:8080/static
-app.get('/', (req, res) => {
-    console.log("Got a request and redirect it to the static page");
-    // redirect will send the client to another path / route. In this case to the static route.
-    res.redirect('/static');
-}); 
-*/
+// Login-Endpunkt
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+    const query = 'SELECT * FROM users WHERE username = ? AND password = ?'; // Achtung: In der Praxis Passwörter gehasht speichern und vergleichen!
+    
+    connection.query(query, [username, password], (error, results) => {
+        if (error) {
+            console.error("Fehler bei der Datenbankabfrage: ", error);
+            return res.status(500).send('Interner Serverfehler');
+        }
+        if (results.length > 0) {
+            // Login erfolgreich
+            return res.send('Erfolgreich eingeloggt!');
+        } else {
+            // Login fehlgeschlagen
+            return res.status(401).send('Login fehlgeschlagen: Benutzername oder Passwort falsch.');
+        }
+    });
+});
+
 // Another GET Path - call it with: http://localhost:8080/special_path
 app.get('/special_path', (req, res) => {
     res.send('This is another path');
