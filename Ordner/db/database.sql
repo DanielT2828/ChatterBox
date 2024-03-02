@@ -24,46 +24,40 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
--- Table structure for table `table1`
 --
-
-CREATE TABLE `table1` (
-  `task_id` int(11) NOT NULL,
-  `title` varchar(255) NOT NULL,
-  `description` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
-
+-- Table structure for table `users`
 --
--- Dumping data for table `table1`
---
-
-INSERT INTO `table1` (`task_id`, `title`, `description`, `created_at`) VALUES
-(1, 'Super titel', 'langer text', '2020-04-09 12:18:07'),
-(2, 'Anderer Titel', 'Super Text', '2020-04-09 12:18:43'),
-(3, 'Anderer Titel2', 'noch mehr text', '2020-04-09 12:18:57');
+CREATE TABLE `users` (
+  `user_id` int(11) NOT NULL AUTO_INCREMENT,
+  `username` varchar(255) NOT NULL,
+  `password` varchar(255) NOT NULL, -- Achtung: In der Praxis Passwörter gehasht speichern!
+  PRIMARY KEY (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Indexes for dumped tables
+-- Dumping data for table `users`
 --
+INSERT INTO `users` (`username`, `password`) VALUES
+('Benutzer1', 'passwort1'), -- Achtung: In der Praxis Passwörter gehasht speichern!
+('Benutzer2', 'passwort2');
 
 --
--- Indexes for table `table1`
+-- Table structure for table `kontakte`
 --
-ALTER TABLE `table1`
-  ADD PRIMARY KEY (`task_id`);
+CREATE TABLE `kontakte` (
+  `kontakt_id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `freund_user_id` int(11) NOT NULL,
+  PRIMARY KEY (`kontakt_id`),
+  KEY `user_id` (`user_id`),
+  KEY `freund_user_id` (`freund_user_id`),
+  CONSTRAINT `kontakte_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `kontakte_ibfk_2` FOREIGN KEY (`freund_user_id`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- AUTO_INCREMENT for dumped tables
+-- Dumping data for table `kontakte`
 --
-
---
--- AUTO_INCREMENT for table `table1`
---
-ALTER TABLE `table1`
-  MODIFY `task_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
-COMMIT;
-
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+INSERT INTO `kontakte` (`user_id`, `freund_user_id`) VALUES
+(1, 2),
+(2, 1);
