@@ -129,19 +129,22 @@ var saltRounds = 10;
 // Registrierungsendpunkt
 app.post('/registrieren', async (req, res) => {
     const { username, password } = req.body;
-    // Hashen des Passworts mit bcrypt
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-    const query = 'INSERT INTO users (username, password) VALUES (?, ?)';
-
-    connection.query(query, [username, hashedPassword], (error, results) => {
-        if (error) {
-            console.error("Fehler bei der Datenbankabfrage: ", error);
-            return res.status(500).send('Interner Serverfehler bei der Registrierung');
-        }
-        // Registrierung erfolgreich, Weiterleitung zur Login-Seite
-        res.redirect('/login.html');
-    });
+    try {
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        const query = 'INSERT INTO users (username, password) VALUES (?, ?)';
+        connection.query(query, [username, hashedPassword], (error, results) => {
+            if (error) {
+                console.error("Fehler bei der Datenbankabfrage: ", error);
+                // Senden Sie eine detailliertere Fehlermeldung oder leiten Sie zu einer Fehlerseite um
+                return res.status(500).send('Fehler bei der Registrierung. Bitte versuchen Sie es später erneut.');
+            }
+            // Registrierung erfolgreich, Weiterleitung zur Login-Seite
+            res.redirect('/login.html');
+        });
+    } catch (error) {
+        console.error("Fehler beim Hashen des Passworts: ", error);
+        return res.status(500).send('Ein interner Fehler ist aufgetreten.');
+    }
 });
 
 
