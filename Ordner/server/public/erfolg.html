@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Erfolg</title>
+    <style>
+        .username {
+            text-align: center;
+            margin-top: 20%;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="username" id="username">Lädt...</div>
+    <script>
+        // AJAX-Anfrage, um den Benutzernamen zu erhalten
+        fetch('/get-username')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('username').textContent = data.username || 'Unbekannter Benutzer';
+            })
+            .catch(error => console.error('Fehler beim Laden des Benutzernamens:', error));
+    </script>
+</body>
+</html>

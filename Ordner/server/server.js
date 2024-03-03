@@ -1,9 +1,34 @@
 'use strict';
 
 const express = require('express');
+const session = require('express-session'); // Importieren von express-session
+const mysql = require('mysql');
+//const { MongoClient } = require('mongodb'); wird noch nicht verwendet 03.03.2024
+
+const app = express();
+
+app.use(session({
+    secret: 'geheimnis', // Ein Geheimnis für die Verschlüsselung der Session-ID
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false } // Auf `true` setzen, wenn Sie HTTPS verwenden
+}));
+
+// Middleware für das Parsen von Body-Daten
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
+app.get('/geheimerBereich', (req, res) => {
+    if (req.session.userId) {
+        res.send('Willkommen im geheimen Bereich!');
+    } else {
+        res.status(401).send('Bitte zuerst einloggen!');
+    }
+});
+
 
 // Database
-const mysql = require('mysql');
+//const mysql = require('mysql');
 // Database connection info - used from environment variables
 var dbInfo = {
     connectionLimit : 10,
@@ -56,31 +81,82 @@ const PORT = process.env.PORT || 8087;
 const HOST = '0.0.0.0';
 
 // App
-const app = express();
+//const app = express();
 
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Login-Endpunkt
-app.post('/login', (req, res) => {
+
+// Login-Endpunkt mit bcryptjs für das Passwort-Hashing
+const bcrypt = require('bcryptjs');
+
+app.post('/login', async (req, res) => {
     const { username, password } = req.body;
-    const query = 'SELECT * FROM users WHERE username = ? AND password = ?'; // Achtung: In der Praxis Passwörter gehasht speichern und vergleichen!
-    
-    connection.query(query, [username, password], (error, results) => {
+    const query = 'SELECT * FROM users WHERE username = ?';
+
+    connection.query(query, [username], async (error, results) => {
         if (error) {
             console.error("Fehler bei der Datenbankabfrage: ", error);
             return res.status(500).send('Interner Serverfehler');
         }
         if (results.length > 0) {
-            // Login erfolgreich
-            return res.send('Erfolgreich eingeloggt!');
+            // Überprüfen, ob das Passwort übereinstimmt
+            const match = await bcrypt.compare(password, results[0].password);
+            if (match) {
+                // Passwort stimmt überein
+                req.session.userId = results[0].user_id;
+                req.session.username = username; // Benutzername in der Session speichern
+                return res.redirect('/erfolg.html'); // Weiterleitung zur Erfolg-Seite
+            } else {
+                // Passwort stimmt nicht überein
+                return res.status(401).send('Login fehlgeschlagen: Benutzername oder Passwort falsch.');
+            }
         } else {
-            // Login fehlgeschlagen
+            // Kein Benutzer gefunden
             return res.status(401).send('Login fehlgeschlagen: Benutzername oder Passwort falsch.');
         }
     });
 });
+
+
+//Registrierung endpunkt
+
+
+// Definieren von saltRounds
+var saltRounds = 10;
+
+// Registrierungsendpunkt
+app.post('/registrieren', async (req, res) => {
+    const { username, password } = req.body;
+    // Hashen des Passworts mit bcrypt
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    const query = 'INSERT INTO users (username, password) VALUES (?, ?)';
+
+    connection.query(query, [username, hashedPassword], (error, results) => {
+        if (error) {
+            console.error("Fehler bei der Datenbankabfrage: ", error);
+            return res.status(500).send('Interner Serverfehler bei der Registrierung');
+        }
+        // Registrierung erfolgreich, Weiterleitung zur Login-Seite
+        res.redirect('/login.html');
+    });
+});
+
+
+
+
+
+//Username kriegen
+app.get('/get-username', (req, res) => {
+    if (req.session.username) {
+        res.json({ username: req.session.username });
+    } else {
+        res.status(401).json({ error: 'Nicht authentifiziert' });
+    }
+});
+
 
 // Another GET Path - call it with: http://localhost:8080/special_path
 app.get('/special_path', (req, res) => {

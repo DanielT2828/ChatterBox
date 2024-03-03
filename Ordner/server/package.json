@@ -4,11 +4,11 @@
   "description": "Node.js on Docker",
   "author": "First Last <first.last@example.com>",
   "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
+
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "express": "^4.17",
+    "express-session": "^1.18.0",
     "mongodb": "^6.3.0",
     "mysql": "^2.18"
   }
