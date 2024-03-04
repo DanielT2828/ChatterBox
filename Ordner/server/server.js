@@ -139,6 +139,20 @@ app.post('/client_post', (req, res) => {
 });
 
 // ###################### BUTTON EXAMPLE ######################
+
+
+// Logout-Endpunkt
+app.get('/logout', (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            console.error("Fehler beim Beenden der Session: ", err);
+            return res.status(500).send("Ein Fehler ist aufgetreten.");
+        }
+        // Session erfolgreich beendet, Umleitung zur Login-Seite
+        res.redirect('/login.html');
+    });
+});
+
 // POST path for Button 1
 app.post('/button1_name', (req, res) => {
     // Load the name from the formular. This is the ID of the input:

@@ -2,17 +2,48 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Erfolg</title>
+    <title>Startseite</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            background-color: #007bff;
+            color: #ffffff;
+            padding: 10px 20px;
+        }
         .username {
-            text-align: center;
-            margin-top: 20%;
-            font-size: 24px;
+            font-size: 20px;
+        }
+        .logout {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .logout:hover {
+            background-color: #c82333;
         }
     </style>
 </head>
 <body>
-    <div class="username" id="username">Lädt...</div>
+    <div class="header">
+        <div class="username" id="username">Lädt...</div>
+        <button class="logout" onclick="logout()">Ausloggen</button>
+    </div>
     <script>
         // AJAX-Anfrage, um den Benutzernamen zu erhalten
         fetch('/get-username')
@@ -21,6 +52,17 @@
                 document.getElementById('username').textContent = data.username || 'Unbekannter Benutzer';
             })
             .catch(error => console.error('Fehler beim Laden des Benutzernamens:', error));
-    </script>
+    
+        // Logout-Funktion
+        function logout() {
+            // Sendet eine Anfrage an den Logout-Endpunkt
+            fetch('/logout')
+                .then(() => {
+                    // Nach erfolgreichem Logout, Umleitung zur Login-Seite
+                    window.location.href = '/login.html';
+                })
+                .catch(error => console.error('Fehler beim Logout:', error));
+        }
+    </script>    
 </body>
 </html>
