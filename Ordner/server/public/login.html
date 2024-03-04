@@ -3,17 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <title>Login</title>
+    <style>
+        .error-message {
+            color: red;
+        }
+    </style>
 </head>
 <body>
     <h2>Login</h2>
-    <form action="/login" method="post">
-        <label for="username">Benutzername:</label>
-        <input type="text" id="username" name="username" required><br>
-        <label for="password">Passwort:</label>
-        <input type="password" id="password" name="password" required><br>
-        <button type="submit">Einloggen</button>
+    <form id="loginForm">
+        <div>
+            <label for="username">Benutzername:</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+        <div>
+            <label for="password">Passwort:</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        <div>
+            <button type="submit">Einloggen</button>
+        </div>
     </form>
+    <div id="error" class="error-message"></div>
+
     <h2>Oder</h2>
     <button onclick="window.location.href='/registrieren.html';">Registrieren</button>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault(); // Verhindert das Neuladen der Seite beim Absenden des Formulars
+
+            const formData = new FormData(this);
+            fetch('/login', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Netzwerkantwort war nicht ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.redirect) {
+                    // Bei Erfolg zur Erfolgsseite weiterleiten
+                    window.location.href = data.redirect;
+                } else {
+                    // Fehlermeldung anzeigen
+                    document.getElementById('error').innerText = data.message;
+                }
+            })
+            .catch(error => {
+                console.error('Fehler:', error);
+                document.getElementById('error').innerText = 'Login fehlgeschlagen: Benutzername oder Passwort falsch.';
+            });
+        });
+    </script>
 </body>
 </html>

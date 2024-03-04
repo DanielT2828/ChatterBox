@@ -1,155 +1,105 @@
-'use strict';
-
+// Importieren der notwendigen Module
 const express = require('express');
-const session = require('express-session'); // Importieren von express-session
+const bcrypt = require('bcryptjs');
+const session = require('express-session');
 const mysql = require('mysql');
-//const { MongoClient } = require('mongodb'); wird noch nicht verwendet 03.03.2024
+const multer = require('multer');
+const upload = multer();
 
 const app = express();
+const saltRounds = 10;
 
+// Konfiguration der Session
 app.use(session({
-    secret: 'geheimnis', // Ein Geheimnis für die Verschlüsselung der Session-ID
+    secret: 'geheimnis',
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false } // Auf `true` setzen, wenn Sie HTTPS verwenden
+    cookie: { secure: false }
 }));
 
 // Middleware für das Parsen von Body-Daten
-app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.get('/geheimerBereich', (req, res) => {
-    if (req.session.userId) {
-        res.send('Willkommen im geheimen Bereich!');
-    } else {
-        res.status(401).send('Bitte zuerst einloggen!');
-    }
-});
-
-
-// Database
-//const mysql = require('mysql');
-// Database connection info - used from environment variables
-var dbInfo = {
-    connectionLimit : 10,
+// Datenbankverbindung
+const connection = mysql.createPool({
+    connectionLimit: 10,
     host: process.env.MYSQL_HOSTNAME,
     user: process.env.MYSQL_USER,
     password: process.env.MYSQL_PASSWORD,
     database: process.env.MYSQL_DATABASE
-};
-
-var connection = mysql.createPool(dbInfo);
-console.log("Conecting to database...");
-// connection.connect(); <- connect not required in connection pool
-
-// SQL Database init.
-// In this current demo, this is done by the "database.sql" file which is stored in the "db"-container (./db/).
-// Alternative you could use the mariadb basic sample and do the following steps here:
-/*
-connection.query("CREATE TABLE IF NOT EXISTS table1 (task_id INT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(255) NOT NULL, description TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)  ENGINE=INNODB;", function (error, results, fields) {
-    if (error) throw error;
-    console.log('Answer: ', results);
 });
-*/
 
-const { MongoClient } = require('mongodb');
-// or as an es module:
-// import { MongoClient } from 'mongodb'
-
-// Connection URL
-const url = 'mongodb://root:example@mongo';
-const client = new MongoClient(url);
-// See readme.md for more information about that.
-/*
-// Check the connection
-connection.query('SELECT 1 + 1 AS solution', function (error, results, fields) {
-    if (error) throw error; // <- this will throw the error and exit normally
-    // check the solution - should be 2
-    if (results[0].solution == 2) {
-        // everything is fine with the database
-        console.log("Database connected and works");
-    } else {
-        // connection is not fine - please check
-        console.error("There is something wrong with your database connection! Please check");
-        process.exit(5); // <- exit application with error code e.g. 5
-    }
-}); */
-
-
-// Constants
-const PORT = process.env.PORT || 8087;
-const HOST = '0.0.0.0';
-
-// App
-//const app = express();
-
-
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-
-
-// Login-Endpunkt mit bcryptjs für das Passwort-Hashing
-const bcrypt = require('bcryptjs');
-
-app.post('/login', async (req, res) => {
+// Login-Endpunkt mit bcryptjs für das Passwort-Hashing und multer für das Parsen der Formulardaten
+app.post('/login', upload.none(), async (req, res) => {
     const { username, password } = req.body;
-    const query = 'SELECT * FROM users WHERE username = ?';
 
-    connection.query(query, [username], async (error, results) => {
+    // Überprüfen, ob Benutzername und Passwort vorhanden sind
+    if (!username || !password) {
+        return res.status(400).json({ message: 'Benutzername und Passwort sind erforderlich.' });
+    }
+
+    // Benutzer anhand des Benutzernamens suchen
+    const userQuery = 'SELECT * FROM users WHERE username = ?';
+    connection.query(userQuery, [username], async (error, results) => {
         if (error) {
-            console.error("Fehler bei der Datenbankabfrage: ", error);
-            return res.status(500).send('Interner Serverfehler');
+            console.error("Fehler bei der Benutzersuche: ", error);
+            return res.status(500).json({ message: 'Ein interner Fehler ist aufgetreten.' });
         }
         if (results.length > 0) {
             // Überprüfen, ob das Passwort übereinstimmt
             const match = await bcrypt.compare(password, results[0].password);
             if (match) {
-                // Passwort stimmt überein
+                // Passwort stimmt überein, Benutzer erfolgreich eingeloggt
                 req.session.userId = results[0].user_id;
                 req.session.username = username; // Benutzername in der Session speichern
-                return res.redirect('/erfolg.html'); // Weiterleitung zur Erfolg-Seite
+                res.json({ message: 'Login erfolgreich', redirect: '/erfolg.html' });
             } else {
                 // Passwort stimmt nicht überein
-                return res.status(401).send('Login fehlgeschlagen: Benutzername oder Passwort falsch.');
+                res.status(401).json({ message: 'Login fehlgeschlagen: Benutzername oder Passwort falsch.' });
             }
         } else {
             // Kein Benutzer gefunden
-            return res.status(401).send('Login fehlgeschlagen: Benutzername oder Passwort falsch.');
+            res.status(401).json({ message: 'Login fehlgeschlagen: Benutzername oder Passwort falsch.' });
         }
     });
 });
 
 
-//Registrierung endpunkt
-
-
-// Definieren von saltRounds
-var saltRounds = 10;
-
-// Registrierungsendpunkt
-app.post('/registrieren', async (req, res) => {
+// Registrierungsendpunkt mit Überprüfung auf vorhandene Benutzernamen
+app.post('/registrieren', upload.none(), async (req, res) => {
     const { username, password } = req.body;
-    try {
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
-        const query = 'INSERT INTO users (username, password) VALUES (?, ?)';
-        connection.query(query, [username, hashedPassword], (error, results) => {
-            if (error) {
-                console.error("Fehler bei der Datenbankabfrage: ", error);
-                // Senden Sie eine detailliertere Fehlermeldung oder leiten Sie zu einer Fehlerseite um
-                return res.status(500).send('Fehler bei der Registrierung. Bitte versuchen Sie es später erneut.');
-            }
-            // Registrierung erfolgreich, Weiterleitung zur Login-Seite
-            res.redirect('/login.html');
-        });
-    } catch (error) {
-        console.error("Fehler beim Hashen des Passworts: ", error);
-        return res.status(500).send('Ein interner Fehler ist aufgetreten.');
+
+    if (!username || !password) {
+        return res.status(400).json({ message: 'Benutzername und Passwort sind erforderlich.' });
     }
+
+    const userExistsQuery = 'SELECT * FROM users WHERE username = ?';
+    connection.query(userExistsQuery, [username], async (error, results) => {
+        if (error) {
+            console.error("Fehler bei der Überprüfung des Benutzernamens: ", error);
+            return res.status(500).json({ message: 'Ein interner Fehler ist aufgetreten.' });
+        }
+        if (results.length > 0) {
+            return res.status(400).json({ message: 'Der Benutzername ist bereits vergeben.' });
+        }
+
+        try {
+            const hashedPassword = await bcrypt.hash(password, saltRounds);
+            const insertQuery = 'INSERT INTO users (username, password) VALUES (?, ?)';
+            connection.query(insertQuery, [username, hashedPassword], (error, results) => {
+                if (error) {
+                    console.error("Fehler bei der Registrierung: ", error);
+                    return res.status(500).json({ message: 'Ein interner Fehler ist aufgetreten.' });
+                }
+                res.json({ message: 'Registrierung erfolgreich', redirect: '/login.html' });
+            });
+        } catch (error) {
+            console.error("Fehler beim Hashen des Passworts: ", error);
+            return res.status(500).json({ message: 'Ein interner Fehler ist aufgetreten.' });
+        }
+    });
 });
-
-
-
-
 
 //Username kriegen
 app.get('/get-username', (req, res) => {
@@ -296,17 +246,18 @@ app.post('/database', (req, res) => {
 // call it with: http://localhost:8080/static
 app.use(express.static('public'))
 
-// Start the actual server
-app.listen(PORT, HOST);
-console.log(`Running on http://${HOST}:${PORT}`);
+//
 
 // Start database connection
 const sleep = (milliseconds) => {
     return new Promise(resolve => setTimeout(resolve, milliseconds))
 }
 
-
-
+//Server starten
+const PORT = process.env.PORT || 8087;
+app.listen(PORT, () => {
+    console.log(`Server läuft auf Port ${PORT}`);
+});
 
 
 
