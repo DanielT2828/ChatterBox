@@ -41,3 +41,23 @@ INSERT INTO `users` (`username`, `password`) VALUES
 ('Benutzer1', 'passwort1'), -- Achtung: In der Praxis Passwörter gehasht speichern!
 ('Benutzer2', 'passwort2');
 
+--
+-- Table structure for table `kontakte`
+--
+CREATE TABLE `kontakte` (
+  `kontakt_id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `freund_user_id` int(11) NOT NULL,
+  PRIMARY KEY (`kontakt_id`),
+  KEY `user_id` (`user_id`),
+  KEY `freund_user_id` (`freund_user_id`),
+  CONSTRAINT `kontakte_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `kontakte_ibfk_2` FOREIGN KEY (`freund_user_id`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `kontakte`
+--
+INSERT INTO `kontakte` (`user_id`, `freund_user_id`) VALUES
+(1, 2),
+(2, 1);

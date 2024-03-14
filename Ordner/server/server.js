@@ -30,76 +30,6 @@ const connection = mysql.createPool({
     database: process.env.MYSQL_DATABASE
 });
 
-
-
-// Für /get-user-name
-app.get('/get-user-name', async (req, res) => {
-    const { userId } = req.query;
-
-    if (!userId) {
-        return res.status(400).send('Benötigte Parameter fehlen');
-    }
-
-    const query = 'SELECT username FROM users WHERE user_id = ?';
-
-    try {
-        const [rows] = await pool.query(query, [userId]);
-        if (rows.length > 0) {
-            res.json({ username: rows[0].username });
-        } else {
-            res.status(404).send('Benutzer nicht gefunden');
-        }
-    } catch (error) {
-        console.error('Fehler beim Abrufen des Benutzernamens:', error);
-        res.status(500).send('Serverfehler');
-    }
-});
-
-
-// Nachrichten senden
-app.post('/send-message', async (req, res) => {
-    const { userId, message } = req.body;
-    const senderId = req.session.userId;
-
-    if (!senderId) {
-        return res.status(403).json({ message: 'Nicht authentifiziert.' });
-    }
-
-    try {
-        await connection.query('INSERT INTO messages (sender_id, receiver_id, text, timestamp) VALUES (?, ?, ?, NOW())', [senderId, userId, message]);
-        res.json({ success: true, message: 'Nachricht gesendet.' });
-    } catch (error) {
-        console.error('Fehler beim Senden der Nachricht:', error);
-        res.status(500).send('Serverfehler');
-    }
-});
-
-
-
-// Für /load-messages
-app.get('/load-messages', (req, res) => {
-    const { userId } = req.query;
-    const currentUserId = req.session.userId;
-
-    if (!currentUserId) {
-        return res.status(403).json({ message: 'Nicht authentifiziert.' });
-    }
-
-    connection.query('SELECT * FROM messages WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) ORDER BY timestamp ASC', [currentUserId, userId, userId, currentUserId], (error, messages) => {
-        if (error) {
-            console.error('Fehler beim Laden der Nachrichten:', error);
-            return res.status(500).json({ message: 'Serverfehler' });
-        }
-        res.json(messages);
-    });
-});
-
-
-
-
-
-
-
 // Login-Endpunkt mit bcryptjs für das Passwort-Hashing und multer für das Parsen der Formulardaten
 app.post('/login', upload.none(), async (req, res) => {
     const { username, password } = req.body;
@@ -222,37 +152,6 @@ app.get('/logout', (req, res) => {
         res.redirect('/login.html');
     });
 });
-
-
-// Benutzer aus der Datenbank kriegen
-// Benutzer aus der Datenbank abrufen
-app.get('/users', async (req, res) => {
-    // Stelle sicher, dass die Verbindung zur Datenbank besteht
-    if (!connection) {
-        console.error('Datenbankverbindung fehlt');
-        return res.status(500).send('Serverfehler: Datenbankverbindung fehlt');
-    }
-
-    try {
-        // Führe die SQL-Abfrage aus, um alle Benutzer abzurufen
-        connection.query('SELECT user_id, username FROM users', (error, results) => {
-            if (error) {
-                // Logge den Fehler und sende eine Fehlermeldung zurück
-                console.error('Fehler beim Abrufen der Benutzer:', error);
-                return res.status(500).send('Serverfehler beim Abrufen der Benutzer');
-            }
-            // Sendet die Benutzerdaten als JSON zurück
-            res.json(results);
-        });
-    } catch (error) {
-        // Fange jegliche Fehler bei der Ausführung der Abfrage ab
-        console.error('Fehler beim Abrufen der Benutzer:', error);
-        res.status(500).send('Serverfehler');
-    }
-});
-
-
-
 
 // POST path for Button 1
 app.post('/button1_name', (req, res) => {
