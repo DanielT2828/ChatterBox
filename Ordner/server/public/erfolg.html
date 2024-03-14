@@ -4,57 +4,101 @@
     <meta charset="UTF-8">
     <title>Startseite</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Roboto', sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #f4f4f4;
-            padding: 20px;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            background-color: #007bff;
-            color: #ffffff;
-            padding: 10px 20px;
-        }
-        .username {
-            font-size: 20px;
-        }
-        .logout {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .logout:hover {
-            background-color: #c82333;
-        }
-    </style>
+    <!-- Deine Styles hier -->
 </head>
 <body>
     <div class="header">
         <div class="username" id="username">Lädt...</div>
         <button class="logout" onclick="logout()">Ausloggen</button>
     </div>
-    <script>
-        // AJAX-Anfrage, um den Benutzernamen zu erhalten
-        fetch('/get-username')
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('username').textContent = data.username || 'Unbekannter Benutzer';
-            })
-            .catch(error => console.error('Fehler beim Laden des Benutzernamens:', error));
+    <div class="main-content">
+        <div class="sidebar">
+            <h2>Registrierte Benutzer</h2>
+            <ul id="users" class="userList"></ul>
+        </div>
+        <div class="chat-area" id="chatArea" style="display:none;">
+            <h2>Chat</h2>
+            <div id="chatMessages" class="chat-messages"></div>
+            <input type="text" id="chatInput" placeholder="Nachricht...">
+            <button onclick="sendChatMessage()">Senden</button>
+        </div>
+    </div>
     
-        // Logout-Funktion
-        function logout() {
+    <script>
+        let currentChatUserId = null; // Globale Variable für die aktuelle Chat-User-ID
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            const response = await fetch('/users');
+            const users = await response.json();
+            const usersList = document.getElementById('users');
+            users.forEach(user => {
+                const userItem = document.createElement('li');
+                // Füge die User-ID vor dem Benutzernamen hinzu
+                userItem.textContent = `[ID: ${user.user_id}] ${user.username}`;
+                userItem.onclick = () => {
+                    currentChatUserId = user.user_id; // Aktualisiere die aktuelle Chat-User-ID
+                    document.getElementById('chatArea').style.display = 'block'; // Zeige den Chat-Bereich an
+                    loadChatMessages(currentChatUserId); // Lade Nachrichten für den ausgewählten Benutzer
+                };
+                usersList.appendChild(userItem);
+            });
+        });
+
+
+
+        async function sendChatMessage() {
+    const messageInput = document.getElementById('chatInput');
+    const message = messageInput.value;
+    if (!message.trim()) return; // Verhindere das Senden leerer Nachrichten
+
+    try {
+        const response = await fetch('/send-message', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message: message, userId: currentChatUserId }),
+        });
+        const data = await response.json();
+        if (response.ok) {
+            console.log("Nachricht erfolgreich gesendet:", data);
+            messageInput.value = ''; // Eingabefeld leeren
+            loadChatMessages(); // Nachrichten neu laden
+        } else {
+            throw new Error(data.message || "Fehler beim Senden der Nachricht");
+        }
+    } catch (error) {
+        console.error('Fehler:', error);
+    }
+}
+
+async function loadChatMessages() {
+    if (!currentChatUserId) return; // Verhindere das Laden von Nachrichten, wenn keine Chat-User-ID gesetzt ist
+
+    try {
+        const response = await fetch(`/load-messages?userId=${currentChatUserId}`);
+        const messages = await response.json();
+        if (response.ok) {
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.innerHTML = ''; // Leere den Chat-Bereich vor dem Laden neuer Nachrichten
+            messages.forEach(message => {
+                const messageElement = document.createElement('div');
+                // Überprüfe, ob die Nachricht vom aktuellen Benutzer oder vom Chatpartner gesendet wurde
+                messageElement.textContent = `${message.sender_id == currentChatUserId ? 'Partner: ' : 'Du: '} ${message.text}`;
+                messagesContainer.appendChild(messageElement);
+            });
+        } else {
+            throw new Error('Fehler beim Laden der Nachrichten');
+        }
+    } catch (error) {
+        console.error('Fehler:', error);
+    }
+}
+
+
+    
+         // Logout-Funktion
+         function logout() {
             // Sendet eine Anfrage an den Logout-Endpunkt
             fetch('/logout')
                 .then(() => {
@@ -63,6 +107,25 @@
                 })
                 .catch(error => console.error('Fehler beim Logout:', error));
         }
+
+              // AJAX-Anfrage, um den Benutzernamen zu erhalten
+              fetch('/get-username')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('username').textContent = data.username || 'Unbekannter Benutzer';
+            })
+            .catch(error => console.error('Fehler beim Laden des Benutzernamens:', error));
+    
+    </script>    
+</body>
+</html>
+
+
+
+
+
+
+
     </script>    
 </body>
 </html>
