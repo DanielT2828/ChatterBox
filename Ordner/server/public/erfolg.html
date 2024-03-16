@@ -4,7 +4,94 @@
     <meta charset="UTF-8">
     <title>Startseite</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-    <!-- Deine Styles hier -->
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            background-color: #007bff;
+            color: #ffffff;
+            padding: 10px 20px;
+        }
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #fff;
+            overflow-y: auto;
+            border-right: 1px solid #ddd;
+            padding: 20px;
+        }
+        .userList {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+        .userList li {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .userList li:hover {
+            background-color: #f0f0f0;
+        }
+        .chat-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #fff;
+        }
+        .chat-messages {
+            margin-bottom: 20px;
+        }
+        .chat-messages div {
+            background-color: #e9ecef;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            max-width: 80%;
+        }
+        #chatInput {
+            width: calc(100% - 110px);
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .logout {
+            background-color: #dc3545;
+            margin-left: auto;
+        }
+        .logout:hover {
+            background-color: #c82333;
+        }
+    </style>
 </head>
 <body>
     <div class="header">
@@ -116,6 +203,15 @@ async function loadChatMessages() {
             })
             .catch(error => console.error('Fehler beim Laden des Benutzernamens:', error));
     
+            
+            // Automatische Aktualisierung der Chat-Nachrichten jede Sekunde damit der Chat nicht reloaded werden muss wenn der Chatpartner was schreibt um dies zu sehen
+setInterval(function() {
+    if (currentChatUserId) {
+        loadChatMessages(currentChatUserId);
+    }
+}, 1000); //1.000 Millisekunden
+
+
     </script>    
 </body>
 </html>
