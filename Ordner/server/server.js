@@ -6,12 +6,10 @@ const mysql = require('mysql');
 const multer = require('multer');
 const upload = multer();
 
-// Importiere die MongoDB-Verbindung
-// Angenommen, server.js ist im "server" Ordner und database.js wurde in den "app" Ordner verschoben
+
 // Importiere die MongoDB-Verbindung
 require('./database');
 
-  // .. Da die Datenbank im Root Verzeichniss ist, also ein Ordner "zurück"
 
 
 const app = express();
@@ -377,7 +375,7 @@ const sleep = (milliseconds) => {
 }
 
 //Server starten
-const PORT = process.env.PORT || 8087;
+const PORT = process.env.PORT || 8087; // Definition des Serverports 8087, darauf läuft der Server (OHNE NGINX!)
 app.listen(PORT, () => {
     console.log(`Server läuft auf Port ${PORT}`);
 });
