@@ -6,6 +6,14 @@ const mysql = require('mysql');
 const multer = require('multer');
 const upload = multer();
 
+// Importiere die MongoDB-Verbindung
+// Angenommen, server.js ist im "server" Ordner und database.js wurde in den "app" Ordner verschoben
+// Importiere die MongoDB-Verbindung
+require('./database');
+
+  // .. Da die Datenbank im Root Verzeichniss ist, also ein Ordner "zurück"
+
+
 const app = express();
 const saltRounds = 10;
 
