@@ -108,6 +108,10 @@
             <div id="chatMessages" class="chat-messages"></div>
             <input type="text" id="chatInput" placeholder="Nachricht...">
             <button onclick="sendChatMessage()">Senden</button>
+            <!-- Datei-Upload-Formular hinzufügen -->
+
+                <button onclick="openUploadPopup()">Bild hochladen</button>
+            </form>
         </div>
     </div>
     
@@ -211,6 +215,10 @@ setInterval(function() {
     }
 }, 1000); //1.000 Millisekunden
 
+
+function openUploadPopup() {
+    window.open('/upload-popup.html', 'Datei-Upload', 'width=400,height=300');
+}
 
     </script>    
 </body>

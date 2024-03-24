@@ -1,26 +1,44 @@
-// Importieren der notwendigen Module
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
 const mysql = require('mysql');
 const multer = require('multer');
-const upload = multer();
+const path = require('path');
+const fs = require('fs');
+const mongoose = require('mongoose');
+
+// MongoDB-Verbindung herstellen (Aktualisierter Verbindungsstring)
+mongoose.connect('mongodb://root:rootpw@mongo:27017/chatterboxDB?authSource=admin')
+.then(() => console.log('MongoDB verbunden'))
+.catch(err => console.error('MongoDB Verbindungsfehler:', err));
 
 
-// Importiere die MongoDB-Verbindung
-require('./database');
+// Definieren eines Schemas für Bilder
+const imageSchema = new mongoose.Schema({
+  filename: String,
+  path: String,
+  contentType: String,
+  createdAt: { type: Date, default: Date.now }
+});
 
-
+// Erstellen eines Modells basierend auf dem Schema
+const Image = mongoose.model('Image', imageSchema);
 
 const app = express();
 const saltRounds = 10;
 
+// Stelle sicher, dass der uploads Ordner existiert
+const uploadDir = 'uploads';
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
 // Konfiguration der Session
 app.use(session({
-    secret: 'geheimnis',
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false }
+  secret: 'geheimnis',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { secure: false }
 }));
 
 // Middleware für das Parsen von Body-Daten
@@ -29,11 +47,60 @@ app.use(express.urlencoded({ extended: true }));
 
 // Datenbankverbindung
 const connection = mysql.createPool({
-    connectionLimit: 10,
-    host: process.env.MYSQL_HOSTNAME,
-    user: process.env.MYSQL_USER,
-    password: process.env.MYSQL_PASSWORD,
-    database: process.env.MYSQL_DATABASE
+  connectionLimit: 10,
+  host: process.env.MYSQL_HOSTNAME,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE
+});
+
+// Konfiguration von multer
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir); // Speicherort der Dateien
+  },
+  filename: function (req, file, cb) {
+    // Generiere einen einzigartigen Dateinamen
+    cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ storage: storage });
+
+// Route zum Hochladen der Datei
+app.post('/upload', upload.single('datei'), (req, res) => {
+    if (req.file) {
+      console.log('Datei empfangen:', req.file);
+      const newImage = new Image({
+        filename: req.file.filename,
+        path: req.file.path,
+        contentType: req.file.mimetype
+      });
+  
+      newImage.save()
+        .then(() => {
+          console.log('Bild erfolgreich gespeichert');
+          res.send('Datei erfolgreich hochgeladen');
+        })
+        .catch(err => {
+          console.error('Fehler beim Speichern des Bildes:', err);
+          res.status(500).send('Fehler beim Speichern des Bildes');
+        });
+    } else {
+      console.log('Keine Datei empfangen');
+      res.status(400).send('Keine Datei hochgeladen');
+    }
+  });
+  
+// Route für das Anzeigen des Upload-Formulars
+app.get('/upload', (req, res) => {
+    res.send(`
+        <h2>Datei-Upload</h2>
+        <form action="/upload" method="post" enctype="multipart/form-data">
+            <input type="file" name="datei">
+            <button type="submit">Hochladen</button>
+        </form>
+    `);
 });
 
 
