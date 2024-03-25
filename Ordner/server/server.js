@@ -7,6 +7,9 @@ const path = require('path');
 const fs = require('fs');
 const mongoose = require('mongoose');
 
+
+
+
 // MongoDB-Verbindung herstellen (Aktualisierter Verbindungsstring)
 mongoose.connect('mongodb://root:rootpw@mongo:27017/chatterboxDB?authSource=admin')
 .then(() => console.log('MongoDB verbunden'))
@@ -15,12 +18,14 @@ mongoose.connect('mongodb://root:rootpw@mongo:27017/chatterboxDB?authSource=admi
 
 // Definieren eines Schemas für Bilder
 const imageSchema = new mongoose.Schema({
-  filename: String,
-  path: String,
-  contentType: String,
-  createdAt: { type: Date, default: Date.now }
-});
-
+    filename: String,
+    path: String,
+    contentType: String,
+    senderId: String, // ID des Senders
+    receiverId: String, // ID des Empfängers
+    createdAt: { type: Date, default: Date.now }
+  });
+  
 // Erstellen eines Modells basierend auf dem Schema
 const Image = mongoose.model('Image', imageSchema);
 
@@ -32,6 +37,9 @@ const uploadDir = 'uploads';
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
+
+// Upload Datei Express damit diese in dynamisch ist
+app.use('/uploads', express.static('uploads'));
 
 // Konfiguration der Session
 app.use(session({
@@ -45,7 +53,7 @@ app.use(session({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Datenbankverbindung
+// Datenbankverbindung für MySQL
 const connection = mysql.createPool({
   connectionLimit: 10,
   host: process.env.MYSQL_HOSTNAME,
@@ -56,52 +64,60 @@ const connection = mysql.createPool({
 
 // Konfiguration von multer
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir); // Speicherort der Dateien
-  },
-  filename: function (req, file, cb) {
-    // Generiere einen einzigartigen Dateinamen
-    cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
-  }
+    destination: function(req, file, cb) {
+        cb(null, 'uploads/'); // Speicherort der hochgeladenen Dateien
+    },
+    filename: function(req, file, cb) {
+        // Generieren eines einzigartigen Dateinamens
+        cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
+    }
 });
 
 const upload = multer({ storage: storage });
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+
 // Route zum Hochladen der Datei
-app.post('/upload', upload.single('datei'), (req, res) => {
-    if (req.file) {
-      console.log('Datei empfangen:', req.file);
-      const newImage = new Image({
+
+app.post('/upload', upload.single('datei'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).send('Keine Datei hochgeladen.');
+    }
+
+    // Extrahieren von senderId und receiverId aus req.body
+    const { senderId, receiverId } = req.body;
+
+    const newImage = new Image({
         filename: req.file.filename,
         path: req.file.path,
-        contentType: req.file.mimetype
-      });
-  
-      newImage.save()
-        .then(() => {
-          console.log('Bild erfolgreich gespeichert');
-          res.send('Datei erfolgreich hochgeladen');
-        })
-        .catch(err => {
-          console.error('Fehler beim Speichern des Bildes:', err);
-          res.status(500).send('Fehler beim Speichern des Bildes');
-        });
-    } else {
-      console.log('Keine Datei empfangen');
-      res.status(400).send('Keine Datei hochgeladen');
+        contentType: req.file.mimetype,
+        senderId: senderId, // Verwendung der extrahierten senderId
+        receiverId: receiverId // Verwendung der extrahierten receiverId
+    });
+
+    try {
+        await newImage.save();
+        res.send('Datei erfolgreich hochgeladen.');
+    } catch (error) {
+        console.error('Fehler beim Speichern des Bildes:', error);
+        res.status(500).send('Fehler beim Speichern des Bildes.');
     }
-  });
-  
-// Route für das Anzeigen des Upload-Formulars
-app.get('/upload', (req, res) => {
-    res.send(`
-        <h2>Datei-Upload</h2>
-        <form action="/upload" method="post" enctype="multipart/form-data">
-            <input type="file" name="datei">
-            <button type="submit">Hochladen</button>
-        </form>
-    `);
 });
+
+
+// Route, um die aktuelle Benutzer-ID zu erhalten
+app.get('/api/get-current-user-id', (req, res) => {
+    if (req.session && req.session.userId) {
+        res.json({ userId: req.session.userId });
+    } else {
+        res.status(401).json({ error: 'Nicht authentifiziert' });
+    }
+});
+
+
+
 
 
 
@@ -129,6 +145,8 @@ app.get('/get-user-name', async (req, res) => {
 });
 
 
+
+
 // Nachrichten senden
 app.post('/send-message', async (req, res) => {
     const { userId, message } = req.body;
@@ -139,6 +157,7 @@ app.post('/send-message', async (req, res) => {
     }
 
     try {
+        // Einfügen der Nachricht ohne sender_username
         await connection.query('INSERT INTO messages (sender_id, receiver_id, text, timestamp) VALUES (?, ?, ?, NOW())', [senderId, userId, message]);
         res.json({ success: true, message: 'Nachricht gesendet.' });
     } catch (error) {
@@ -151,14 +170,23 @@ app.post('/send-message', async (req, res) => {
 
 // Für /load-messages
 app.get('/load-messages', (req, res) => {
-    const { userId } = req.query;
-    const currentUserId = req.session.userId;
+    const { userId } = req.query; // ID des Empfängers
+    const currentUserId = req.session.userId; // ID des aktuellen Benutzers (Sender)
 
     if (!currentUserId) {
         return res.status(403).json({ message: 'Nicht authentifiziert.' });
     }
 
-    connection.query('SELECT * FROM messages WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) ORDER BY timestamp ASC', [currentUserId, userId, userId, currentUserId], (error, messages) => {
+    // Anpassen der Abfrage, um den Benutzernamen des Senders zu erhalten
+    const query = `
+        SELECT m.*, u.username AS sender_username 
+        FROM messages m
+        JOIN users u ON m.sender_id = u.user_id
+        WHERE (m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?)
+        ORDER BY m.timestamp ASC
+    `;
+
+    connection.query(query, [currentUserId, userId, userId, currentUserId], (error, messages) => {
         if (error) {
             console.error('Fehler beim Laden der Nachrichten:', error);
             return res.status(500).json({ message: 'Serverfehler' });
@@ -166,11 +194,6 @@ app.get('/load-messages', (req, res) => {
         res.json(messages);
     });
 });
-
-
-
-
-
 
 
 // Login-Endpunkt mit bcryptjs für das Passwort-Hashing und multer für das Parsen der Formulardaten
@@ -446,9 +469,3 @@ const PORT = process.env.PORT || 8087; // Definition des Serverports 8087, darau
 app.listen(PORT, () => {
     console.log(`Server läuft auf Port ${PORT}`);
 });
-
-
-
-
-
-

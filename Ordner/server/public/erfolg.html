@@ -109,7 +109,16 @@
             <input type="text" id="chatInput" placeholder="Nachricht...">
             <button onclick="sendChatMessage()">Senden</button>
             <!-- Datei-Upload-Formular hinzufügen -->
-
+            <form action="/upload" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="senderId" id="senderId" value=""> <!-- Dynamisch setzen -->
+                <input type="hidden" name="receiverId" id="receiverId" value=""> <!-- Dynamisch setzen -->
+                <input type="file" name="datei">
+                <button type="submit">Hochladen</button>
+            </form>
+            
+            
+              </form>
+              
                 <button onclick="openUploadPopup()">Bild hochladen</button>
             </form>
         </div>
@@ -118,23 +127,43 @@
     <script>
         let currentChatUserId = null; // Globale Variable für die aktuelle Chat-User-ID
 
-        document.addEventListener('DOMContentLoaded', async function() {
-            const response = await fetch('/users');
-            const users = await response.json();
-            const usersList = document.getElementById('users');
-            users.forEach(user => {
-                const userItem = document.createElement('li');
-                // Füge die User-ID vor dem Benutzernamen hinzu
-                userItem.textContent = `[ID: ${user.user_id}] ${user.username}`;
-                userItem.onclick = () => {
-                    currentChatUserId = user.user_id; // Aktualisiere die aktuelle Chat-User-ID
-                    document.getElementById('chatArea').style.display = 'block'; // Zeige den Chat-Bereich an
-                    loadChatMessages(currentChatUserId); // Lade Nachrichten für den ausgewählten Benutzer
-                };
-                usersList.appendChild(userItem);
-            });
-        });
 
+
+        document.addEventListener('DOMContentLoaded', async function() {
+    // Abrufen und Anzeigen der Benutzerliste
+    const usersResponse = await fetch('/users');
+    const users = await usersResponse.json();
+    const usersList = document.getElementById('users');
+    users.forEach(user => {
+        const userItem = document.createElement('li');
+        userItem.textContent = `[ID: ${user.user_id}] ${user.username}`;
+        userItem.onclick = () => {
+            currentChatUserId = user.user_id;
+            document.getElementById('chatArea').style.display = 'block';
+            loadChatMessages(currentChatUserId);
+            // Setzen der receiverId, wenn ein Benutzer ausgewählt wird
+            document.getElementById('receiverId').value = user.user_id;
+        };
+        usersList.appendChild(userItem);
+    });
+
+    // Abrufen der aktuellen Benutzer-ID (senderId) vom Server und Setzen im Formular
+    fetch('/api/get-current-user-id')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Nicht authentifiziert');
+            }
+            return response.json();
+        })
+        .then(data => {
+            document.getElementById('senderId').value = data.userId;
+        })
+        .catch(error => {
+            console.error('Fehler:', error);
+            // Optional: Umleitung zur Login-Seite, wenn nicht authentifiziert
+            // window.location.href = '/login.html';
+        });
+});
 
 
         async function sendChatMessage() {
@@ -144,7 +173,7 @@
 
     try {
         const response = await fetch('/send-message', {
-            method: 'POST',
+            method: 'POST', // POST= Was an die Datenbank schicken
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -163,28 +192,8 @@
     }
 }
 
-async function loadChatMessages() {
-    if (!currentChatUserId) return; // Verhindere das Laden von Nachrichten, wenn keine Chat-User-ID gesetzt ist
 
-    try {
-        const response = await fetch(`/load-messages?userId=${currentChatUserId}`);
-        const messages = await response.json();
-        if (response.ok) {
-            const messagesContainer = document.getElementById('chatMessages');
-            messagesContainer.innerHTML = ''; // Leere den Chat-Bereich vor dem Laden neuer Nachrichten
-            messages.forEach(message => {
-                const messageElement = document.createElement('div');
-                // Überprüfe, ob die Nachricht vom aktuellen Benutzer oder vom Chatpartner gesendet wurde
-                messageElement.textContent = `${message.sender_id == currentChatUserId ? 'Partner: ' : 'Du: '} ${message.text}`;
-                messagesContainer.appendChild(messageElement);
-            });
-        } else {
-            throw new Error('Fehler beim Laden der Nachrichten');
-        }
-    } catch (error) {
-        console.error('Fehler:', error);
-    }
-}
+        
 
 
     
@@ -214,17 +223,60 @@ setInterval(function() {
         loadChatMessages(currentChatUserId);
     }
 }, 1000); //1.000 Millisekunden
+async function loadChatMessages() {
+    if (!currentChatUserId) return;
 
+    try {
+        const response = await fetch(`/load-messages?userId=${currentChatUserId}`);
+        if (!response.ok) {
+            throw new Error('Fehler beim Laden der Nachrichten');
+        }
+        const messages = await response.json();
+        const messagesContainer = document.getElementById('chatMessages');
+        messagesContainer.innerHTML = '';
 
-function openUploadPopup() {
-    window.open('/upload-popup.html', 'Datei-Upload', 'width=400,height=300');
+        messages.forEach(message => {
+            const messageElement = document.createElement('div');
+            // Hier fügen wir den Benutzernamen des Senders zur Nachricht hinzu
+            messageElement.textContent = `${message.sender_username}: ${message.text}`;
+            messagesContainer.appendChild(messageElement);
+        });
+    } catch (error) {
+        console.error('Fehler:', error);
+    }
 }
 
-    </script>    
-</body>
-</html>
 
 
+        // Funktion zum Öffnen des Upload-Popups und Setzen der IDs
+     // Angenommen, diese Funktion wird aufgerufen, wenn ein Benutzer einen Chat-Partner auswählt
+function openChatWithUser(receiverId) {
+    // Die senderId könnte aus der Benutzersitzung oder einem globalen JavaScript-Variable stammen
+    const senderId = getCurrentUserId(); // Diese Funktion muss Ihre Logik enthalten, um die aktuelle Benutzer-ID zu erhalten
+
+    openUploadPopup(senderId, receiverId); // Variable wird nicht richtig übergeben
+}
+
+
+let senderId = 'DieAktuelleSenderId'; // Diese sollte dynamisch gesetzt werden
+document.getElementById('senderId').value = senderId;
+
+function openUploadPopup() {
+    const senderId = document.getElementById('senderId').value;
+    const receiverId = document.getElementById('receiverId').value;
+    const url = `/upload-popup.html?senderId=${senderId}&receiverId=${receiverId}`;
+    window.open(url, 'Datei-Upload', 'width=400,height=300');
+}
+
+
+
+        // Wenn der Benutzer die Eingabetaste drückt, sende die Chat-Nachricht
+        document.getElementById('chatInput').addEventListener('keypress', function(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault(); // Verhindert das Standardverhalten des Formulars
+        sendChatMessage(); // Ruft die Funktion zum Senden der Nachricht auf
+    }
+});
 
 
 

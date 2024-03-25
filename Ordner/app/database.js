@@ -13,11 +13,12 @@ const imageSchema = new mongoose.Schema({
   filename: String,
   path: String,
   contentType: String,
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
+  senderId: String, // ID des Senders
+  receiverId: String, // ID des Empfängers
+  createdAt: { type: Date, default: Date.now }
 });
+
+
 
 // Erstellen eines Modells basierend auf dem Schema
 const Image = mongoose.model('Image', imageSchema);

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 // Verbindung zur MongoDB-Datenbank herstellen
-mongoose.connect('mongodb://root:example@mongo:27017/chatterboxDB?authSource=admin', {
+mongoose.connect('mongodb://root:rootpw@mongo:27017/chatterboxDB?authSource=admin', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
@@ -13,11 +13,12 @@ const imageSchema = new mongoose.Schema({
   filename: String,
   path: String,
   contentType: String,
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
+  senderId: String, // ID des Senders
+  receiverId: String, // ID des Empfängers
+  createdAt: { type: Date, default: Date.now }
 });
+
+
 
 // Erstellen eines Modells basierend auf dem Schema
 const Image = mongoose.model('Image', imageSchema);
