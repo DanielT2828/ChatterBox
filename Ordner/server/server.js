@@ -307,6 +307,30 @@ app.post('/client_post', (req, res) => {
 // ###################### BUTTON EXAMPLE ######################
 
 
+
+app.get('/api/get-images-for-chat', async (req, res) => {
+    const { senderId, receiverId } = req.query;
+
+    try {
+        const images = await Image.find({
+            $or: [
+                { senderId: senderId, receiverId: receiverId },
+                { senderId: receiverId, receiverId: senderId }
+            ]
+        }).sort({ createdAt: -1 }); // Neueste Bilder zuerst
+
+        res.json(images);
+    } catch (error) {
+        console.error('Fehler beim Abrufen der Bilder:', error);
+        res.status(500).send('Serverfehler beim Abrufen der Bilder.');
+    }
+});
+
+
+
+
+
+
 // Logout-Endpunkt
 app.get('/logout', (req, res) => {
     req.session.destroy((err) => {
