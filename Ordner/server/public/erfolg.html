@@ -109,6 +109,7 @@
     <div class="main-content">
         <div class="sidebar">
             <h2>Registrierte Benutzer</h2>
+            <input type="text" id="searchInput" placeholder="Benutzer suchen..." oninput="searchUsers()">
             <ul id="users" class="userList"></ul>
             <div class="image-gallery" id="imageGallery" style="display:none;">
                 <h2>Bildergalerie</h2>
@@ -133,6 +134,35 @@
 
 
     <script>
+
+
+// Diese Funktion wird aufgerufen, wenn der Benutzer etwas in das Suchfeld eingibt
+function searchUsers() {
+    // Den eingegebenen Suchbegriff aus dem Suchfeld abrufen und in Kleinbuchstaben umwandeln
+    const searchInput = document.getElementById('searchInput').value.toLowerCase();
+    
+    // Die Liste der registrierten Benutzer abrufen
+    const userList = document.getElementById('users');
+    
+    // Alle <li>-Elemente (Benutzer) in der Benutzerliste abrufen
+    const users = userList.getElementsByTagName('li');
+
+    // Schleife durch jedes Benutzer-<li>-Element
+    for (let i = 0; i < users.length; i++) {
+        // Den Benutzernamen des aktuellen Benutzers (in Kleinbuchstaben) extrahieren
+        const userName = users[i].textContent.toLowerCase();
+        
+        // Überprüfen, ob der Benutzername den Suchbegriff enthält
+        if (userName.includes(searchInput)) {
+            // Wenn der Benutzername den Suchbegriff enthält, wird das <li>-Element angezeigt
+            users[i].style.display = '';
+        } else {
+            // Wenn der Benutzername den Suchbegriff nicht enthält, wird das <li>-Element ausgeblendet
+            users[i].style.display = 'none';
+        }
+    }
+}
+
         let currentChatUserId = null; // Globale Variable für die aktuelle Chat-User-ID
 
 
@@ -144,7 +174,7 @@
     const usersList = document.getElementById('users');
     users.forEach(user => {
         const userItem = document.createElement('li');
-        userItem.textContent = `[ID: ${user.user_id}] ${user.username}`;
+        userItem.textContent = `[${user.user_id}] ${user.username}`;
         userItem.onclick = () => {
             currentChatUserId = user.user_id;
             document.getElementById('chatArea').style.display = 'block';
@@ -325,11 +355,18 @@ async function loadImagesForChat(senderId, receiverId) {
         imageGalleryContent.innerHTML = ''; // Galerie leeren
 
         images.forEach(image => {
-            const imgElement = document.createElement('img');
-            imgElement.src = image.path; // Pfad zum Bild, z.B. '/uploads/datei-1711386403861.png'
-            imgElement.alt = 'Chat Bild';
-            imageGalleryContent.appendChild(imgElement);
-        });
+    const imgElement = document.createElement('img');
+    imgElement.src = image.path; // Pfad zum Bild, z.B. '/uploads/datei-1711386403861.png'
+    imgElement.alt = 'Chat Bild';
+    imageGalleryContent.appendChild(imgElement);
+
+    // Erstelle ein Element für das Hochladedatum
+    const dateElement = document.createElement('div');
+    const uploadDate = new Date(image.createdAt);
+    dateElement.textContent = `${senderId}:  ${uploadDate.toLocaleString()}`;
+    imageGalleryContent.appendChild(dateElement);
+});
+
     } catch (error) {
         console.error('Fehler beim Laden der Bilder:', error);
     }
