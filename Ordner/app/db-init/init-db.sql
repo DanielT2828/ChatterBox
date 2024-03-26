@@ -20,8 +20,16 @@ CREATE TABLE messages (
 
 
 -- Optional: Füge einen Testbenutzer hinzu
-INSERT INTO users (username, password) VALUES ('testuser', 'testpass');
+---INSERT INTO users (username, password) VALUES ('testuser', 'testpass');
 INSERT INTO users (username, password) VALUES ('admin', '$2a$10$RE/PCtpafR/l8LMDmYTnQeqh5X/RempVo.TGDXTSIl99aPphh24Nm');
+INSERT INTO users (username, password) VALUES ('Axel', '$2a$10$Ko0Mxmg4V.aD8jrozMhG1e6D8MsFHv4ktNLnYULqMViveseNRvszi');
+INSERT INTO users (username, password) VALUES ('Antonio', '$2a$10$GCInphivKrLzVWBw47LYJeWtu/4YtQ1P60xTd1D9BhwvAqj3nctN6');
+INSERT INTO users (username, password) VALUES ('Daniel', '$2a$10$8PC8w52JdL7LR8hTa.ENg..nNWTbGyPr.0VcIqPKmfW/dAXSkYbke');
+
+
+INSERT INTO messages (message_id, sender_id, receiver_id, text, timestamp) VALUES ('111', '34', '33', 'Hallo', '2024-03-26 12:51:50');
+
+
 
 
 -- Gewährt dem Benutzer exampleuser alle Rechte auf die Datenbank Benutzerdatenbank
