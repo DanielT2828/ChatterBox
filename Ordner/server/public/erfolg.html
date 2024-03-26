@@ -14,6 +14,9 @@
             height: 100vh;
             background-color: #f4f4f4;
         }
+        strong {
+    font-weight: bold;
+}
         .header {
             display: flex;
             justify-content: space-between;
@@ -238,7 +241,9 @@ setInterval(function() {
         loadChatMessages(currentChatUserId);
     }
 }, 1000); //1.000 Millisekunden
-async function loadChatMessages() {
+
+// Abrufen und Anzeigen der Chat-Nachrichten
+async function loadChatMessages(currentChatUserId) {
     if (!currentChatUserId) return;
 
     try {
@@ -251,16 +256,20 @@ async function loadChatMessages() {
         messagesContainer.innerHTML = '';
 
         messages.forEach(message => {
-            const messageElement = document.createElement('div');
-            // Hier fügen wir den Benutzernamen des Senders zur Nachricht hinzu
-            messageElement.textContent = `${message.sender_username}: ${message.text}`;
-            messagesContainer.appendChild(messageElement);
-        });
+    const messageElement = document.createElement('div');
+    const timestamp = new Date(message.timestamp);
+    const formattedTime = timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    messageElement.innerHTML = `[${formattedTime}] <strong>${message.sender_username}:</strong> ${message.text}`;
+    messagesContainer.appendChild(messageElement);
+});
+
+
+
+
     } catch (error) {
         console.error('Fehler:', error);
     }
 }
-
 
 
         // Funktion zum Öffnen des Upload-Popups und Setzen der IDs
