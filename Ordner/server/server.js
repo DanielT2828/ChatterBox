@@ -1,12 +1,13 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const session = require('express-session');
 const mysql = require('mysql');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const mongoose = require('mongoose');
-
+const session = require('express-session');
+const RedisStore = require('connect-redis')(session);
+const redis = require('redis');
 
 
 
@@ -41,13 +42,20 @@ if (!fs.existsSync(uploadDir)) {
 // Upload Datei Express damit diese in dynamisch ist
 app.use('/uploads', express.static('uploads'));
 
+
+let redisClient = redis.createClient({
+    host: process.env.REDIS_HOST || '0.0.0.0',
+    port: 6379
+  });
+
 // Konfiguration der Session
 app.use(session({
-  secret: 'geheimnis',
-  resave: false,
-  saveUninitialized: true,
-  cookie: { secure: false }
-}));
+    store: new RedisStore({ client: redisClient }),
+    secret: 'geheimnis',
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false } // Setzen Sie secure auf true in Produktionsumgebungen mit HTTPS.
+  }));
 
 // Middleware für das Parsen von Body-Daten
 app.use(express.json());

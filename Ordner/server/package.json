@@ -11,6 +11,8 @@
     "mongodb": "^6.5.0",
     "mongoose": "^8.2.2",
     "multer": "^1.4.5-lts.1",
-    "mysql": "^2.18"
-  }
+    "mysql": "^2.18",
+    "connect-redis": "^6.0.0", 
+    "redis": "^3.1.2"
+  }  
 }
