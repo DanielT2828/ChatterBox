@@ -14,6 +14,7 @@ services:
       MYSQL_HOSTNAME: mariadb
     depends_on:
       - mariadb
+      - redis
 
   chatterbox2:
     build: ../server2
@@ -29,6 +30,23 @@ services:
       MYSQL_HOSTNAME: mariadb
     depends_on:
       - mariadb
+      - redis
+
+  chatterbox3:
+    build: ../server3
+    volumes:
+      - ../server3:/usr/src/app
+    working_dir: /usr/src/app
+    command: node server3.js
+    environment:
+      REDIS_HOST: redis
+      MYSQL_DATABASE: Benutzerdatenbank
+      MYSQL_USER: exampleuser
+      MYSQL_PASSWORD: examplepass
+      MYSQL_HOSTNAME: mariadb
+    depends_on:
+      - mariadb
+      - redis
 
   redis:
     image: redis:latest
