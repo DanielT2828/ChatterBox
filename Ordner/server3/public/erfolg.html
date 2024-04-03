@@ -208,12 +208,11 @@ function searchUsers() {
         })
         .catch(error => {
             console.error('Fehler:', error);
-            // Optional: Umleitung zur Login-Seite, wenn nicht authentifiziert
-            // window.location.href = '/login.html';
+           
         });
 
 
-
+//Funktion zum Chatnachrichten senden
         async function sendChatMessage() {
     const messageInput = document.getElementById('chatInput');
     const message = messageInput.value;

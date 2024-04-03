@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Registrieren2</title>
+    <title>Registrieren1</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <style>
         body {
@@ -77,13 +77,13 @@
         </div>
     </div>
 
-    <script> //Javascript Code folgt im <script> Teil
+    <script> //Registrierungsfunktion
         document.getElementById('registrationForm').addEventListener('submit', function(e) {
             e.preventDefault();
         
             const formData = new FormData(this);
             fetch('/registrieren', {
-                method: 'POST',
+                method: 'POST', //sendet registrieren funktion an db
                 body: formData
             })
             .then(response => {

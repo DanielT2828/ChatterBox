@@ -63,7 +63,7 @@
 </head>
 <body>
     <div class="container">
-        <h2>Login2</h2>
+        <h2>Login1</h2>
         <form id="loginForm">
             <label for="username">Benutzername:</label>
             <input type="text" id="username" name="username" required>
@@ -77,13 +77,13 @@
         </div>
     </div>
 
-    <script> //Javascript Code folgt im <script> Teil
+    <script> //Kümmert sich allgemein um den Login mit fehlerbehandlung
         document.getElementById('loginForm').addEventListener('submit', function(e) {
             e.preventDefault(); // Verhindert das Neuladen der Seite beim Absenden des Formulars
 
             const formData = new FormData(this);
             fetch('/login', {
-                method: 'POST',
+                method: 'POST', //sendet login funktion an db
                 body: formData
             })
             .then(response => {
