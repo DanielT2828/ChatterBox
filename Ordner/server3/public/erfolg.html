@@ -108,7 +108,7 @@
     </div>
     <div class="main-content">
         <div class="sidebar">
-            <h2>Registrierte Benutzer3</h2>
+            <h2>Registrierte Benutzer</h2>
             <input type="text" id="searchInput" placeholder="Benutzer suchen..." oninput="searchUsers()">
             <ul id="users" class="userList"></ul>
             <div class="image-gallery" id="imageGallery" style="display:none;">
@@ -362,13 +362,14 @@ async function loadImagesForChat(senderId, receiverId) {
 
     // Erstelle ein Element für das Hochladedatum
     const dateElement = document.createElement('div');
-    const uploadDate = new Date(image.createdAt);
-    dateElement.textContent = `${senderId}:  ${uploadDate.toLocaleString()}`;
+    const uploadDate = new Date(image.createdAt); //Erstellen von Datum und Uhrzeit durch Zugriff auf die Datenbank
+    const DSender = new String (image.senderId); //Erstellen von Datum und Uhrzeit durch Zugriff auf die Datenbank
+    dateElement.textContent = `${DSender.toString()} :  ${uploadDate.toLocaleString()}`; //Upload-Datum angeben
     imageGalleryContent.appendChild(dateElement);
 });
 
     } catch (error) {
-        console.error('Fehler beim Laden der Bilder:', error);
+        console.error('Fehler beim Laden der Bilder:', error); //Fehlermeldung in der Konsole, wenn das Bild nicht geladen werden kann
     }
 }
 

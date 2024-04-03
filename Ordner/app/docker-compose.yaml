@@ -94,7 +94,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: rootpw
     volumes:
-     - /MongoDB:/data/db
+     - /mongo_data:/data/db
 
   mongo-express:
     image: mongo-express
