@@ -1,12 +1,15 @@
+
+--Erstellt Benutzerdatenbank falls diese noch nicht existiert
 CREATE DATABASE IF NOT EXISTS Benutzerdatenbank;
 USE Benutzerdatenbank;
 
+--Tabelle User wird erstellt falls nicht vorhanden
 CREATE TABLE IF NOT EXISTS users (
   user_id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(255) NOT NULL,
   password VARCHAR(255) NOT NULL
 );
-
+--Tabelle Messages wird erstellt falls nicht vorhanden
 CREATE TABLE messages (
     message_id INT AUTO_INCREMENT PRIMARY KEY,
     sender_id INT NOT NULL,
@@ -19,7 +22,6 @@ CREATE TABLE messages (
 
 
 
--- Optional: Füge einen Testbenutzer hinzu
 ---INSERT INTO users (username, password) VALUES ('testuser', 'testpass');
 INSERT INTO users (username, password) VALUES ('admin', '$2a$10$RE/PCtpafR/l8LMDmYTnQeqh5X/RempVo.TGDXTSIl99aPphh24Nm');
 INSERT INTO users (username, password) VALUES ('Axel', '$2a$10$Ko0Mxmg4V.aD8jrozMhG1e6D8MsFHv4ktNLnYULqMViveseNRvszi');

@@ -77,13 +77,13 @@
         </div>
     </div>
 
-    <script> //Javascript Code folgt im <script> Teil
+    <script> //Registrierungsfunktion
         document.getElementById('registrationForm').addEventListener('submit', function(e) {
             e.preventDefault();
         
             const formData = new FormData(this);
             fetch('/registrieren', {
-                method: 'POST',
+                method: 'POST', //sendet registrieren funktion an db
                 body: formData
             })
             .then(response => {

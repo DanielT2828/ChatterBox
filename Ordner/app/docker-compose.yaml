@@ -15,7 +15,7 @@ services:
     depends_on:
       - mariadb
       - redis
-
+#Container für Server 2
   chatterbox2:
     build: ../server2
     volumes:
@@ -31,7 +31,7 @@ services:
     depends_on:
       - mariadb
       - redis
-
+#Container für Server 3
   chatterbox3:
     build: ../server3
     volumes:
@@ -47,13 +47,13 @@ services:
     depends_on:
       - mariadb
       - redis
-
+#Container für redis
   redis:
     image: redis:latest
     restart: always
     ports:
       - "6379:6379"
-
+#container für mariadb
   mariadb:
     image: mariadb:latest
     restart: always
@@ -67,7 +67,7 @@ services:
     volumes:
       - mariadb_data:/var/lib/mysql
       - ./db-init:/docker-entrypoint-initdb.d
-
+#container für phpmyadmin
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     restart: always
@@ -75,7 +75,7 @@ services:
       - 8085:80
     environment:
       PMA_HOST: mariadb
-
+#container für nginx
   web:
     image: nginx:latest
     ports:
@@ -86,7 +86,7 @@ services:
       - ../server/public:/usr/share/nginx/html:ro
     depends_on:
       - chatterbox1
-
+#container für mongodb
   mongo:
     image: mongo
     restart: always
@@ -95,7 +95,7 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: rootpw
     volumes:
      - /mongo_data:/data/db
-
+#container für mongo-express
   mongo-express:
     image: mongo-express
     restart: always
@@ -109,7 +109,7 @@ services:
       ME_CONFIG_BASICAUTH_PASSWORD: admin
     depends_on:
       - mongo
-
+#hiermit werden DB Daten lokal gespeichert
 volumes:
   mariadb_data:
     driver: local
