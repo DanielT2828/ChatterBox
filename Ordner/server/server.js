@@ -22,10 +22,12 @@ const imageSchema = new mongoose.Schema({
     filename: String,
     path: String,
     contentType: String,
-    senderId: String, // ID des Senders
-    receiverId: String, // ID des Empfängers
+    senderId: String,
+    senderUsername: String,  // Hinzufügen des Benutzernamen-Feldes
+    receiverId: String,
     createdAt: { type: Date, default: Date.now }
-  });
+});
+
   
 // Erstellen eines Modells basierend auf dem Schema
 const Image = mongoose.model('Image', imageSchema);
@@ -88,21 +90,23 @@ app.use(express.urlencoded({ extended: true }));
 
 
 // Route zum Hochladen der Datei
-
 app.post('/upload', upload.single('datei'), async (req, res) => {
     if (!req.file) {
         return res.status(400).send('Keine Datei hochgeladen.');
     }
 
-    // Extrahieren von senderId und receiverId aus req.body
+    // Annahme, dass senderId und senderUsername sicher aus der Session oder einer anderen vertrauenswürdigen Quelle abgerufen werden
     const { senderId, receiverId } = req.body;
+    const senderUsername = req.session.username;  // Beispiel, wie der Benutzername aus der Session abgerufen werden könnte
 
     const newImage = new Image({
         filename: req.file.filename,
         path: req.file.path,
         contentType: req.file.mimetype,
-        senderId: senderId, // Verwendung der extrahierten senderId
-        receiverId: receiverId // Verwendung der extrahierten receiverId
+        senderId: senderId,
+        senderUsername: senderUsername,  // Speichern des Benutzernamens im Bild-Dokument
+        receiverId: receiverId,
+        createdAt: new Date()
     });
 
     try {
@@ -317,22 +321,15 @@ app.post('/client_post', (req, res) => {
 
 
 app.get('/api/get-images-for-chat', async (req, res) => {
-    const { senderId, receiverId, lastImageId } = req.query; // Hinzufügen des lastImageId Parameters
+    const { senderId, receiverId } = req.query;
 
     try {
-        const queryConditions = {
+        const images = await Image.find({
             $or: [
                 { senderId: senderId, receiverId: receiverId },
                 { senderId: receiverId, receiverId: senderId }
             ]
-        };
-
-        // Filtern, um nur Bilder zu erhalten, die nach der letzten bekannten ID erstellt wurden
-        if (lastImageId) {
-            queryConditions['_id'] = { $gt: lastImageId };
-        }
-
-        const images = await Image.find(queryConditions).sort({ createdAt:-1 }); // Bilder in chronologischer Reihenfolge
+        }).sort({ createdAt: -1 }); // Neueste Bilder zuerst
 
         res.json(images);
     } catch (error) {
@@ -340,6 +337,10 @@ app.get('/api/get-images-for-chat', async (req, res) => {
         res.status(500).send('Serverfehler beim Abrufen der Bilder.');
     }
 });
+
+
+
+
 
 
 // Logout-Endpunkt
@@ -500,7 +501,7 @@ const sleep = (milliseconds) => {
 }
 
 //Server starten
-const PORT = process.env.PORT || 8089; // Definition des Serverports 8087, darauf läuft der Server (OHNE NGINX!)
+const PORT = process.env.PORT || 8087; // Definition des Serverports 8087, darauf läuft der Server (OHNE NGINX!)
 app.listen(PORT, () => {
     console.log(`Server läuft auf Port ${PORT}`);
 });

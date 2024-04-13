@@ -12,7 +12,7 @@ services:
       MYSQL_USER: exampleuser
       MYSQL_PASSWORD: examplepass
       MYSQL_HOSTNAME: mariadb
-      PORT: 8089
+      PORT: 8087
     depends_on:
       - mariadb
       - redis

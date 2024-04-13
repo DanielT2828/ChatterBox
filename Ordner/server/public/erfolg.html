@@ -355,26 +355,23 @@ async function loadImagesForChat(senderId, receiverId) {
         imageGalleryContent.innerHTML = ''; // Galerie leeren
 
         images.forEach(image => {
-    const imgElement = document.createElement('img');
-    imgElement.src = image.path; // Pfad zum Bild, z.B. '/uploads/datei-1711386403861.png'
-    imgElement.alt = 'Chat Bild';
-    imageGalleryContent.appendChild(imgElement);
+            const imgElement = document.createElement('img');
+            imgElement.src = image.path; // Pfad zum Bild
+            imgElement.alt = 'Chat Bild';
+            imageGalleryContent.appendChild(imgElement);
 
-    // Erstelle ein Element für das Hochladedatum
-    const dateElement = document.createElement('div');
-    const uploadDate = new Date(image.createdAt); //Erstellen von Datum und Uhrzeit durch Zugriff auf die Datenbank
-    const DSender = new String (image.senderId); //Erstellen von Datum und Uhrzeit durch Zugriff auf die Datenbank
-    dateElement.textContent = `[${DSender.toString()}] :  ${uploadDate.toLocaleString()}`; //Upload-Datum angeben
-    imageGalleryContent.appendChild(dateElement);
-});
+            // Erstelle ein Element für das Hochladedatum und den Benutzernamen
+            const dateElement = document.createElement('div');
+            const uploadDate = new Date(image.createdAt);
+            const usernameDisplay = image.senderUsername || 'Unbekannter Benutzer'; // Verwende senderUsername, fallback auf 'Unbekannter Benutzer'
+            dateElement.textContent = `[${usernameDisplay}] : ${uploadDate.toLocaleString()}`; // Zeige Benutzernamen und Datum an
+            imageGalleryContent.appendChild(dateElement);
+        });
 
     } catch (error) {
-        console.error('Fehler beim Laden der Bilder:', error); //Fehlermeldung in der Konsole, wenn das Bild nicht geladen werden kann
+        console.error('Fehler beim Laden der Bilder:', error); // Fehlermeldung in der Konsole, wenn das Bild nicht geladen werden kann
     }
 }
-
-
-
 
 
 
