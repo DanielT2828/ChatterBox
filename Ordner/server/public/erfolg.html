@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Startseite</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        strong {
+    font-weight: bold;
+}
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            background-color: #007bff;
+            color: #ffffff;
+            padding: 10px 20px;
+        }
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        .sidebar, .image-gallery {
+            width: 250px;
+            background-color: #fff;
+            overflow-y: auto;
+            border-right: 1px solid #ddd;
+            padding: 20px;
+        }
+        .userList {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+        .userList li {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .userList li:hover {
+            background-color: #f0f0f0;
+        }
+        .chat-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #fff;
+        }
+        .chat-messages, .image-gallery-content {
+            margin-bottom: 20px;
+        }
+        .chat-messages div, .image-gallery img {
+            background-color: #e9ecef;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            max-width: 80%;
+        }
+        .image-gallery img {
+            max-width: 100px; /* Anpassen der Bildgröße */
+            margin: 5px;
+            border-radius: 5px;
+        }
+        #chatInput {
+            width: calc(100% - 110px);
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .logout {
+            background-color: #dc3545;
+            margin-left: auto;
+        }
+        .logout:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="username" id="username">Lädt...</div>
+        <button class="logout" onclick="logout()">Ausloggen</button>
+    </div>
+    <div class="main-content">
+        <div class="sidebar">
+            <h2>Registrierte Benutzer</h2>
+            <input type="text" id="searchInput" placeholder="Benutzer suchen..." oninput="searchUsers()">
+            <ul id="users" class="userList"></ul>
+            <div class="image-gallery" id="imageGallery" style="display:none;">
+                <h2>Bildergalerie</h2>
+                <div class="image-gallery-content"></div>
+            </div>
+        </div>
+        <div class="chat-area" id="chatArea" style="display:none;">
+            <h2>Chat</h2>
+            <div id="chatMessages" class="chat-messages"></div>
+            <input type="text" id="chatInput" placeholder="Nachricht...">
+            <button onclick="sendChatMessage()">Senden</button>
+            <!-- Datei-Upload-Formular hinzufügen -->
+            <form id="uploadForm" style="display:none;" action="/upload" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="senderId" id="senderId" value="">
+                <input type="hidden" name="receiverId" id="receiverId" value="">
+                <input type="file" name="datei">
+                <button type="submit">Hochladen</button>
+            </form>
+            <button onclick="openUploadPopup()">Bild hochladen</button>
+
+            
+
+
+    <script>
+
+
+// Diese Funktion wird aufgerufen, wenn der Benutzer etwas in das Suchfeld eingibt
+function searchUsers() {
+    // Den eingegebenen Suchbegriff aus dem Suchfeld abrufen und in Kleinbuchstaben umwandeln
+    const searchInput = document.getElementById('searchInput').value.toLowerCase();
+    
+    // Die Liste der registrierten Benutzer abrufen
+    const userList = document.getElementById('users');
+    
+    // Alle <li>-Elemente (Benutzer) in der Benutzerliste abrufen
+    const users = userList.getElementsByTagName('li');
+
+    // Schleife durch jedes Benutzer-<li>-Element
+    for (let i = 0; i < users.length; i++) {
+        // Den Benutzernamen des aktuellen Benutzers (in Kleinbuchstaben) extrahieren
+        const userName = users[i].textContent.toLowerCase();
+        
+        // Überprüfen, ob der Benutzername den Suchbegriff enthält
+        if (userName.includes(searchInput)) {
+            // Wenn der Benutzername den Suchbegriff enthält, wird das <li>-Element angezeigt
+            users[i].style.display = '';
+        } else {
+            // Wenn der Benutzername den Suchbegriff nicht enthält, wird das <li>-Element ausgeblendet
+            users[i].style.display = 'none';
+        }
+    }
+}
+
+        let currentChatUserId = null; // Globale Variable für die aktuelle Chat-User-ID
+
+
+
+        document.addEventListener('DOMContentLoaded', async function() {
+    // Abrufen und Anzeigen der Benutzerliste
+    const usersResponse = await fetch('/users');
+    const users = await usersResponse.json();
+    const usersList = document.getElementById('users');
+    users.forEach(user => {
+        const userItem = document.createElement('li');
+        userItem.textContent = `[${user.user_id}] ${user.username}`;
+        userItem.onclick = () => {
+            currentChatUserId = user.user_id;
+            document.getElementById('chatArea').style.display = 'block';
+            // Zeige die Bildergalerie neben dem Chat-Bereich
+            document.getElementById('imageGallery').style.display = 'block';
+            loadChatMessages(currentChatUserId);
+            // Setzen der receiverId, wenn ein Benutzer ausgewählt wird
+            document.getElementById('receiverId').value = user.user_id;
+
+            // Hier rufen wir loadImagesForChat auf
+            const senderId = document.getElementById('senderId').value; // Die aktuelle Benutzer-ID (senderId) aus dem Formular
+            const receiverId = user.user_id; // Die ID des ausgewählten Benutzers (receiverId)
+            loadImagesForChat(senderId, receiverId); // Bilder für den ausgewählten Chat laden
+        };
+        usersList.appendChild(userItem);
+    });
+});
+
+
+
+    // Abrufen der aktuellen Benutzer-ID (senderId) vom Server und Setzen im Formular
+    fetch('/api/get-current-user-id')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Nicht authentifiziert');
+            }
+            return response.json();
+        })
+        .then(data => {
+            document.getElementById('senderId').value = data.userId;
+        })
+        .catch(error => {
+            console.error('Fehler:', error);
+            // Optional: Umleitung zur Login-Seite, wenn nicht authentifiziert
+            // window.location.href = '/login.html';
+        });
+
+
+
+        async function sendChatMessage() {
+    const messageInput = document.getElementById('chatInput');
+    const message = messageInput.value;
+    if (!message.trim()) return; // Verhindere das Senden leerer Nachrichten
+
+    try {
+        const response = await fetch('/send-message', {
+            method: 'POST', // POST= Was an die Datenbank schicken
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message: message, userId: currentChatUserId }),
+        });
+        const data = await response.json();
+        if (response.ok) {
+            console.log("Nachricht erfolgreich gesendet:", data);
+            messageInput.value = ''; // Eingabefeld leeren
+            loadChatMessages(); // Nachrichten neu laden
+        } else {
+            throw new Error(data.message || "Fehler beim Senden der Nachricht");
+        }
+    } catch (error) {
+        console.error('Fehler:', error);
+    }
+}
+
+
+        
+
+
+    
+         // Logout-Funktion
+         function logout() {
+            // Sendet eine Anfrage an den Logout-Endpunkt
+            fetch('/logout')
+                .then(() => {
+                    // Nach erfolgreichem Logout, Umleitung zur Login-Seite
+                    window.location.href = '/login.html';
+                })
+                .catch(error => console.error('Fehler beim Logout:', error));
+        }
+
+              // AJAX-Anfrage, um den Benutzernamen zu erhalten
+              fetch('/get-username')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('username').textContent = data.username || 'Unbekannter Benutzer';
+            })
+            .catch(error => console.error('Fehler beim Laden des Benutzernamens:', error));
+    
+            
+            // Automatische Aktualisierung der Chat-Nachrichten jede Sekunde damit der Chat nicht reloaded werden muss wenn der Chatpartner was schreibt um dies zu sehen
+setInterval(function() {
+    if (currentChatUserId) {
+        loadChatMessages(currentChatUserId);
+    }
+}, 1000); //1.000 Millisekunden
+
+// Abrufen und Anzeigen der Chat-Nachrichten
+async function loadChatMessages(currentChatUserId) {
+    if (!currentChatUserId) return;
+
+    try {
+        const response = await fetch(`/load-messages?userId=${currentChatUserId}`);
+        if (!response.ok) {
+            throw new Error('Fehler beim Laden der Nachrichten');
+        }
+        const messages = await response.json();
+        const messagesContainer = document.getElementById('chatMessages');
+        messagesContainer.innerHTML = '';
+
+        messages.forEach(message => {
+    const messageElement = document.createElement('div');
+    const timestamp = new Date(message.timestamp);
+    const formattedTime = timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    messageElement.innerHTML = `[${formattedTime}] <strong>${message.sender_username}:</strong> ${message.text}`;
+    messagesContainer.appendChild(messageElement);
+});
+
+
+
+
+    } catch (error) {
+        console.error('Fehler:', error);
+    }
+}
+
+
+        // Funktion zum Öffnen des Upload-Popups und Setzen der IDs
+     // Angenommen, diese Funktion wird aufgerufen, wenn ein Benutzer einen Chat-Partner auswählt
+function openChatWithUser(receiverId) {
+    // Die senderId könnte aus der Benutzersitzung oder einem globalen JavaScript-Variable stammen
+    const senderId = getCurrentUserId(); // Diese Funktion muss Ihre Logik enthalten, um die aktuelle Benutzer-ID zu erhalten
+
+    openUploadPopup(senderId, receiverId); // Variable wird nicht richtig übergeben
+}
+
+
+let senderId = 'DieAktuelleSenderId'; // Diese sollte dynamisch gesetzt werden
+document.getElementById('senderId').value = senderId;
+
+function openUploadPopup() {
+    const senderId = document.getElementById('senderId').value;
+    const receiverId = document.getElementById('receiverId').value;
+    const url = `/upload-popup.html?senderId=${senderId}&receiverId=${receiverId}`;
+    window.open(url, 'Datei-Upload', 'width=400,height=300');
+}
+
+
+
+        // Wenn der Benutzer die Eingabetaste drückt, sende die Chat-Nachricht
+        document.getElementById('chatInput').addEventListener('keypress', function(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault(); // Verhindert das Standardverhalten des Formulars
+        sendChatMessage(); // Ruft die Funktion zum Senden der Nachricht auf
+    }
+});
+
+
+
+
+// Automatische Aktualisierung der Bilder jede Sekunde
+setInterval(function() {
+    if (currentChatUserId) {
+        const senderId = document.getElementById('senderId').value; // Die aktuelle Benutzer-ID (senderId) aus dem Formular
+        const receiverId = currentChatUserId; // Die ID des ausgewählten Benutzers (receiverId)
+        loadImagesForChat(senderId, receiverId); // Bilder für den ausgewählten Chat laden
+    }
+}, 1000); // 1.000 Millisekunden
+
+
+//Bilder laden
+async function loadImagesForChat(senderId, receiverId) {
+    try {
+        const response = await fetch(`/api/get-images-for-chat?senderId=${senderId}&receiverId=${receiverId}`);
+        const images = await response.json();
+
+        const imageGalleryContent = document.querySelector('.image-gallery-content');
+        imageGalleryContent.innerHTML = ''; // Galerie leeren
+
+        images.forEach(image => {
+    const imgElement = document.createElement('img');
+    imgElement.src = image.path; // Pfad zum Bild, z.B. '/uploads/datei-1711386403861.png'
+    imgElement.alt = 'Chat Bild';
+    imageGalleryContent.appendChild(imgElement);
+
+    // Erstelle ein Element für das Hochladedatum
+    const dateElement = document.createElement('div');
+    const uploadDate = new Date(image.createdAt); //Erstellen von Datum und Uhrzeit durch Zugriff auf die Datenbank
+    const DSender = new String (image.senderId); //Erstellen von Datum und Uhrzeit durch Zugriff auf die Datenbank
+    dateElement.textContent = `[${DSender.toString()}] :  ${uploadDate.toLocaleString()}`; //Upload-Datum angeben
+    imageGalleryContent.appendChild(dateElement);
+});
+
+    } catch (error) {
+        console.error('Fehler beim Laden der Bilder:', error); //Fehlermeldung in der Konsole, wenn das Bild nicht geladen werden kann
+    }
+}
+
+
+
+
+
+
+    </script>    
+</body>
+</html>
