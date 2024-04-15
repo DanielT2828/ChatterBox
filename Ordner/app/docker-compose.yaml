@@ -67,6 +67,7 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: rootpw
     volumes:
      - /mongo_data:/data/db
+     - ./mongo-init:/docker-entrypoint-initdb.d 
 
   mongo-express:
     image: mongo-express

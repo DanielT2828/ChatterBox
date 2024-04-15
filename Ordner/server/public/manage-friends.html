@@ -1,0 +1,304 @@
+
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Freunde verwalten</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        #usernameDisplay, #userIDDisplay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 16px;
+            color: #333;
+        }
+        #userIDDisplay {
+            left: auto;
+            right: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        input[type="text"], select {
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: calc(100% - 22px);
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .section {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="usernameDisplay">Lädt...</div>
+        <div id="userIDDisplay">Lädt...</div>
+        <h1>Freunde verwalten</h1>
+        <input type="text" id="friendUserId" placeholder="Benutzer-ID eingeben">
+        <button onclick="addFriend()">Freund hinzufügen</button>
+        
+        <div class="friend-requests section">
+            <h2>Freundschaftsanfragen</h2>
+            <ul id="friendRequests"></ul>
+        </div>
+
+        <div class="friends-list section">
+            <h2>Meine Freunde</h2>
+            <ul id="friendsList"></ul>
+        </div>
+        
+        <button onclick="window.location.href='/erfolg.html'">Zurück zur Erfolgsseite</button>
+    </div>
+   
+    <script>
+        async function fetchAndDisplayUsername() {
+    try {
+        const userDataResponse = await fetch('/get-username', {credentials: 'include'});
+        if (!userDataResponse.ok) throw new Error('Fehler beim Laden des Benutzernamens');
+        const userData = await userDataResponse.json();
+
+        document.getElementById('usernameDisplay').textContent = userData.username;
+
+        const userIdResponse = await fetch(`http://localhost/get-user-id/${userData.username}`);
+        if (!userIdResponse.ok) throw new Error('Fehler beim Laden der Benutzer-ID');
+        const userIdData = await userIdResponse.json();
+
+        document.getElementById('userIDDisplay').textContent = `ID: ${userIdData.userId}`;
+        sessionStorage.setItem('userId', userIdData.userId);
+
+        loadFriendRequests(userIdData.userId);
+        loadFriends(userIdData.userId); // Laden Sie die Liste der Freunde, wenn alles erfolgreich war
+    } catch (error) {
+        console.error('Fehler:', error);
+    }
+}
+        
+        function loadFriendRequests(userId) {
+            if (!userId) {
+                console.error('Benutzer-ID ist nicht definiert');
+                return;
+            }
+        
+            fetch(`http://localhost/get-friend-requests/${userId}`, { credentials: 'include' })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Fehler beim Laden der Freundschaftsanfragen');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const requestsContainer = document.getElementById('friendRequests');
+                requestsContainer.innerHTML = '';
+                data.forEach(request => {
+                    const li = document.createElement('li');
+                    li.id = `friend-request-${request.friendshipId}`;
+                    li.innerHTML = `${request.requesterUsername} - ${request.status}
+                        <button onclick="acceptFriendship(${request.friendshipId})">✔️</button>
+                        <button onclick="declineFriendship(${request.friendshipId})">❌</button>`;
+                    requestsContainer.appendChild(li);
+                });
+            })
+            .catch(error => console.error('Fehler:', error));
+        }
+        
+        window.onload = fetchAndDisplayUsername;
+
+        function addFriend() {
+    const friendUserId = document.getElementById('friendUserId').value.trim();
+    const currentUserId = sessionStorage.getItem('userId');
+
+    if (!friendUserId || !currentUserId) {
+        alert('Benutzer-ID fehlt!');
+        return;
+    }
+
+    fetch('/add-friend', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ user_id1: currentUserId, user_id2: friendUserId }),
+        credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success && data.error && data.error.code === "ER_DUP_ENTRY") {
+            alert("Freundschaftsanfrage wurde bereits versendet!");
+        } else {
+            alert(data.message);
+            if (data.success) {
+                loadFriendRequests(currentUserId); // Freundschaftsanfragen neu laden, wenn Erfolg
+                loadFriends(currentUserId); // Freundesliste aktualisieren
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Fehler beim Senden der Freundschaftsanfrage:', error);
+        alert('Es gab einen Fehler beim Senden der Anfrage.');
+    });
+}function loadFriends(userId) {
+    fetch(`http://localhost/get-friends/${userId}`, { credentials: 'include' })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Fehler beim Laden der Freunde');
+        }
+        return response.json();
+    })
+    .then(friends => {
+        const friendList = document.getElementById('friendsList');
+        friendList.innerHTML = '';  // Leere die Liste bevor neue Einträge hinzugefügt werden
+        friends.forEach(friend => {
+            const li = document.createElement('li');
+            fetchUserId(friend.username, li); // Funktion zum Abrufen der Benutzer-ID
+            const removeButton = document.createElement('button');
+            removeButton.textContent = '❌';
+            removeButton.onclick = function() { removeFriend(friend.userId); };
+            li.appendChild(removeButton);
+            friendList.appendChild(li);
+        });
+    })
+    .catch(error => console.error('Fehler:', error));
+}
+
+function fetchUserId(username, li) {
+    fetch(`http://localhost/get-user-id/${username}`, { credentials: 'include' })
+    .then(response => response.json())
+    .then(data => {
+        if (data.userId) {
+            li.textContent = `${username} [ID: ${data.userId}] `;  // Update text content first
+        } else {
+            li.textContent = `${username} [ID: nicht verfügbar]`;  // Update if ID is not available
+        }
+        const removeButton = document.createElement('button');  // Create remove button
+        removeButton.textContent = '❌';  // Set text for button
+        removeButton.onclick = function() { removeFriend(data.userId); };  // Set onclick function
+        li.appendChild(removeButton);  // Append button to the list item
+    })
+    .catch(error => {
+        console.error('Fehler beim Laden der Benutzer-ID:', error);
+        li.textContent = `${username} [ID: Fehler]`;  // Display error in text content
+    });
+}
+        
+function acceptFriendship(friendshipId) {
+    fetch(`/accept-friendship/${friendshipId}`, { method: 'POST', credentials: 'include' })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            if (data.success) {
+                // Element entfernen oder aktualisieren
+                document.getElementById(`friend-request-${friendshipId}`).remove();
+            }
+        })
+        .catch(error => console.error('Fehler:', error));
+}
+
+function declineFriendship(friendshipId) {
+    fetch(`/decline-friendship/${friendshipId}`, { method: 'POST', credentials: 'include' })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            if (data.success) {
+                // Element entfernen oder aktualisieren
+                document.getElementById(`friend-request-${friendshipId}`).remove();
+            }
+        })
+        .catch(error => console.error('Fehler:', error));
+}
+
+
+        // Funktion zum Laden der Freundesanfragen mit der UserID
+        function loadFriendRequests(userId) {
+    fetch(`http://localhost/get-friend-requests/${userId}`, { credentials: 'include' })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Fehler beim Laden der Freundschaftsanfragen');
+        }
+        return response.json();
+    })
+    .then(data => {
+        const requestsContainer = document.getElementById('friendRequests');
+        requestsContainer.innerHTML = '';
+        data.forEach(request => {
+            const li = document.createElement('li');
+            li.id = `friend-request-${request.friendshipId}`;
+            li.innerHTML = `${request.requesterUsername} - ${request.status}
+                <button onclick="acceptFriendship(${request.friendshipId})">✔️</button>
+                <button onclick="declineFriendship(${request.friendshipId})">❌</button>`;
+            requestsContainer.appendChild(li);
+        });
+    })
+    .catch(error => console.error('Fehler:', error));
+
+
+}
+
+
+function removeFriend(friendId) {
+    const currentUserId = sessionStorage.getItem('userId');
+    if (!currentUserId) {
+        alert('Benutzer-ID fehlt!');
+        return;
+    }
+
+    fetch(`/remove-friend`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ user_id1: currentUserId, user_id2: friendId }),
+        credentials: 'include'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Fehler beim Entfernen des Freundes');
+        }
+        return response.json();
+    })
+    .then(data => {
+        alert(data.message);
+        loadFriends(currentUserId);  // Freundesliste aktualisieren nach dem Entfernen
+    })
+    .catch(error => {
+        console.error('Fehler beim Entfernen des Freundes:', error);
+        alert('Es gab einen Fehler beim Entfernen des Freundes.');
+    });
+}
+        </script>
+        
+
+
+</body>
+</html>

@@ -17,6 +17,17 @@ CREATE TABLE messages (
     FOREIGN KEY (receiver_id) REFERENCES users(user_id)
 );
 
+CREATE TABLE IF NOT EXISTS friends (
+  friendship_id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id1 INT NOT NULL,
+  user_id2 INT NOT NULL,
+  status ENUM('pending', 'accepted', 'declined', 'blocked') DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id1) REFERENCES users(user_id),
+  FOREIGN KEY (user_id2) REFERENCES users(user_id),
+  UNIQUE KEY unique_friendship (user_id1, user_id2)
+);
+
 
 
 -- Optional: Füge einen Testbenutzer hinzu

@@ -1,13 +1,13 @@
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const mysql = require('mysql');
+const express = require('express'); // Express-Modul importieren
+const bcrypt = require('bcryptjs'); // bcrypt-Modul importieren
+const mysql = require('mysql'); // mysql-Modul importieren
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const mongoose = require('mongoose');
-const session = require('express-session');
-const RedisStore = require('connect-redis')(session);
-const redis = require('redis');
+const mongoose = require('mongoose'); 
+const session = require('express-session'); // express-session-Modul importieren
+const RedisStore = require('connect-redis')(session); // Redis-Modul für Sitzungsspeicherung importieren
+const redis = require('redis'); // Redis-Modul importieren
 
 
 
@@ -18,103 +18,136 @@ mongoose.connect('mongodb://root:rootpw@mongo:27017/chatterboxDB?authSource=admi
 
 
 // Definieren eines Schemas für Bilder
-const imageSchema = new mongoose.Schema({
-    filename: String,
-    path: String,
-    contentType: String,
-    senderId: String,
+const imageSchema = new mongoose.Schema({ // Erstellen eines Schemas für Bilder
+    filename: String, // Dateiname
+    path: String, // Pfad zur Datei
+    contentType: String, // Dateityp (z. B. image/jpeg)
+    senderId: String, // ID des Senders
     senderUsername: String,  // Hinzufügen des Benutzernamen-Feldes
-    receiverId: String,
-    createdAt: { type: Date, default: Date.now }
-});
+    receiverId: String, // ID des Empfängers
+    createdAt: { type: Date, default: Date.now } // Erstellungsdatum (Standard: aktuelles Datum)
+}); 
 
   
 // Erstellen eines Modells basierend auf dem Schema
 const Image = mongoose.model('Image', imageSchema);
 
-const app = express();
-const saltRounds = 10;
+const app = express(); // Erstellen einer Express-App
+const saltRounds = 10; // Anzahl der Runden für das Hashing von Passwörtern
 
 // Stelle sicher, dass der uploads Ordner existiert
-const uploadDir = 'uploads';
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+const uploadDir = 'uploads'; // Speicherort für hochgeladene Dateien
+if (!fs.existsSync(uploadDir)) { // Überprüfen, ob der Ordner bereits existiert
+  fs.mkdirSync(uploadDir, { recursive: true }); //  Erstellen des Ordners, falls er nicht existiert
 }
 
 // Upload Datei Express damit diese in dynamisch ist
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static('uploads')); // Statische Dateien im Ordner 'uploads' bereitstellen
 
 
-let redisClient = redis.createClient({
-    host: process.env.REDIS_HOST || '0.0.0.0',
-    port: 6379
+
+// Funktion, die eine Verbindung zu Redis herstellt und bei Fehlern neu versucht
+function connectToRedis() {
+  let redisClient = redis.createClient({
+      host: process.env.REDIS_HOST || 'redis', // Standardmäßig 'redis', wenn in Docker verwendet
+      port: 6379,
+      retry_strategy: function(options) {
+          if (options.error && options.error.code === "ECONNREFUSED") {
+              // Verbindungsfehler, versuche es erneut
+              console.error('Redis Verbindung fehlgeschlagen, versuche erneut...');
+              return Math.min(options.attempt * 100, 3000); // Verzögerung zwischen den Versuchen
+          }
+          if (options.total_retry_time > 1000 * 60 * 60) {
+              // Gib nach einer Stunde auf
+              return new Error('Aufgabe der Verbindung zu Redis nach einer Stunde');
+          }
+          if (options.attempt > 10) {
+              // Gib auf nach 10 Versuchen
+              return undefined;
+          }
+          // Versuche alle 3 Sekunden erneut zu verbinden
+          return 3000;
+      }
   });
 
-// Konfiguration der Session
+  redisClient.on('connect', () => {
+    console.log('Verbunden mit Redis'); // Wenn die Verbindung erfolgreich hergestellt wurde, wird dies in der Konsole angezeigt
+  });
+
+  redisClient.on('error', (err) => { //Wenn Redis ein Fehler auswirft, wird dies in der Konsole als Fehler ausgegeben
+    console.error('Redis Fehler:', err);
+  });
+
+  return redisClient; //Gibt den erstellten redisClient zurück
+}
+
+let redisClient = connectToRedis(); //Verbindung zu Redis herstellen
+
+// Nutze diesen redisClient für die Session-Konfiguration
 app.use(session({
-    store: new RedisStore({ client: redisClient }),
-    secret: 'geheimnis',
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false } // Setzen Sie secure auf true in Produktionsumgebungen mit HTTPS.
-  }));
+    store: new RedisStore({ client: redisClient }), // Verwende Redis als Speicherort für Sitzungsdaten
+    secret: 'geheimnis', // Geheimnis für die Sitzungsverschlüsselung
+    resave: false, // Sitzung nicht erneut speichern, wenn keine Änderungen vorgenommen wurden
+    saveUninitialized: true, // Sitzung auch speichern, wenn sie nicht initialisiert wurde
+    cookie: { secure: false } // Cookie-Einstellungen (hier: nicht sicher, also kein HTTPS)
+}));
 
 // Middleware für das Parsen von Body-Daten
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json()); // Parsen von JSON-Daten
+app.use(express.urlencoded({ extended: true })); // Parsen von URL-kodierten Daten
 
 // Datenbankverbindung für MySQL
-const connection = mysql.createPool({
-  connectionLimit: 10,
-  host: process.env.MYSQL_HOSTNAME,
-  user: process.env.MYSQL_USER,
-  password: process.env.MYSQL_PASSWORD,
-  database: process.env.MYSQL_DATABASE
+const connection = mysql.createPool({ // Erstellen einer MySQL-Verbindung
+  connectionLimit: 20, // Begrenzung der maximalen Anzahl von Verbindungen
+  host: process.env.MYSQL_HOSTNAME, // Hostname der Datenbank
+  user: process.env.MYSQL_USER, // Benutzername für die Datenbank
+  password: process.env.MYSQL_PASSWORD, // Passwort für die Datenbank
+  database: process.env.MYSQL_DATABASE //  Datenbankname
 });
 
 // Konfiguration von multer
-const storage = multer.diskStorage({
-    destination: function(req, file, cb) {
+const storage = multer.diskStorage({ // Festlegen des Speicherorts und Dateinamens für hochgeladene Dateien
+    destination: function(req, file, cb) { // Festlegen des Speicherorts
         cb(null, 'uploads/'); // Speicherort der hochgeladenen Dateien
     },
     filename: function(req, file, cb) {
         // Generieren eines einzigartigen Dateinamens
-        cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
+        cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname)); // Dateiname: Feldname + aktuelles Datum + Dateierweiterung
     }
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({ storage: storage }); // Konfiguration von multer mit dem oben definierten Speicherort
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json()); // Parsen von JSON-Daten
+app.use(express.urlencoded({ extended: true })); // Parsen von URL-kodierten Daten
 
 
 // Route zum Hochladen der Datei
-app.post('/upload', upload.single('datei'), async (req, res) => {
-    if (!req.file) {
-        return res.status(400).send('Keine Datei hochgeladen.');
+app.post('/upload', upload.single('datei'), async (req, res) => { // Hochladen einer einzelnen Datei mit dem Feldnamen 'datei'
+    if (!req.file) { // Überprüfen, ob eine Datei hochgeladen wurde
+        return res.status(400).send('Keine Datei hochgeladen.'); // Fehlermeldung, wenn keine Datei hochgeladen wurde
     }
 
     // Annahme, dass senderId und senderUsername sicher aus der Session oder einer anderen vertrauenswürdigen Quelle abgerufen werden
-    const { senderId, receiverId } = req.body;
+    const { senderId, receiverId } = req.body; // Annahme, dass senderId und receiverId als Formulardaten übergeben werden
     const senderUsername = req.session.username;  // Beispiel, wie der Benutzername aus der Session abgerufen werden könnte
 
-    const newImage = new Image({
-        filename: req.file.filename,
-        path: req.file.path,
-        contentType: req.file.mimetype,
-        senderId: senderId,
+    const newImage = new Image({ // Erstellen eines neuen Bild-Dokuments
+        filename: req.file.filename, // Dateiname der hochgeladenen Datei
+        path: req.file.path, // Pfad zur hochgeladenen Datei
+        contentType: req.file.mimetype, // MIME-Typ des Bildes
+        senderId: senderId, // ID des Senders
         senderUsername: senderUsername,  // Speichern des Benutzernamens im Bild-Dokument
-        receiverId: receiverId,
-        createdAt: new Date()
+        receiverId: receiverId, // ID des Empfängers
+        createdAt: new Date() // Aktuelles Datum als Erstellungsdatum
     });
 
     try {
-        await newImage.save();
-        res.send('Datei erfolgreich hochgeladen.');
-    } catch (error) {
-        console.error('Fehler beim Speichern des Bildes:', error);
-        res.status(500).send('Fehler beim Speichern des Bildes.');
+        await newImage.save(); // Bild in der Datenbank speichern
+        res.send('Datei erfolgreich hochgeladen.'); // Erfolgsmeldung
+    } catch (error) { // Fehlerbehandlung
+        console.error('Fehler beim Speichern des Bildes:', error); // Fehlermeldung in der Konsole
+        res.status(500).send('Fehler beim Speichern des Bildes.'); // Fehlermeldung an den Client
     }
 });
 
@@ -129,8 +162,124 @@ app.get('/api/get-current-user-id', (req, res) => {
 });
 
 
+//Freundschaftsanfragen-Systen Ab hier
+  const util = require('util');
+connection.query = util.promisify(connection.query); 
+app.get('/get-friend-requests/:userId', async (req, res) => {
+    if (!req.session || !req.session.userId) {
+        console.log('Keine gültige Session oder userId vorhanden.');
+        return res.status(403).json({ message: 'Nicht authentifiziert.' });
+    }
+
+    const userId = req.params.userId;
+    const query = `
+        SELECT f.friendship_id, f.user_id1, f.status, u.username as requesterUsername
+        FROM friends f
+        JOIN users u ON f.user_id1 = u.user_id
+        WHERE f.user_id2 = ? AND f.status = "pending";
+    `;
+
+    try {
+        const rows = await connection.query(query, [userId]);
+        if (rows.length > 0) {
+            const result = rows.map(request => ({
+                friendshipId: request.friendship_id,
+                requesterId: request.user_id1,
+                requesterUsername: request.requesterUsername, // Hier den Benutzernamen hinzufügen
+                status: request.status
+            }));
+            res.json(result);
+        } else {
+            res.json([]);
+        }
+    } catch (error) {
+        console.error('Fehler beim Laden der Freundschaftsanfragen:', error);
+        res.status(500).send('Serverfehler');
+    }
+});
 
 
+app.get('/get-friends/:userId', async (req, res) => {
+    const userId = req.params.userId;
+    const query = 'SELECT u.username FROM friends f JOIN users u ON u.user_id = f.user_id2 WHERE f.user_id1 = ? AND f.status = "accepted" UNION SELECT u.username FROM friends f JOIN users u ON u.user_id = f.user_id1 WHERE f.user_id2 = ? AND f.status = "accepted"';
+
+    try {
+        const friends = await connection.query(query, [userId, userId]);
+        res.json(friends);
+    } catch (error) {
+        console.error('Fehler beim Laden der Freunde:', error);
+        res.status(500).send('Serverfehler');
+    }
+});
+
+app.post('/remove-friend', async (req, res) => {
+    const { user_id1, user_id2 } = req.body;
+
+    if (!user_id1 || !user_id2) {
+        return res.status(400).json({ message: 'Benötigte Parameter fehlen' });
+    }
+
+    try {
+        // Hier kommt Ihre Logik zum Entfernen des Freundes
+        // Zum Beispiel könnte das Löschen aus einer Datenbank so aussehen:
+        const result = await connection.query('DELETE FROM friends WHERE (user_id1 = ? AND user_id2 = ?) OR (user_id1 = ? AND user_id2 = ?)', [user_id1, user_id2, user_id2, user_id1]);
+        if (result.affectedRows > 0) {
+            res.json({ success: true, message: 'Freund erfolgreich entfernt' });
+        } else {
+            res.status(404).json({ success: false, message: 'Freund nicht gefunden' });
+        }
+    } catch (error) {
+        console.error('Fehler beim Entfernen des Freundes:', error);
+        res.status(500).json({ success: false, message: 'Interner Serverfehler', error: error });
+    }
+});
+
+
+app.post('/accept-friendship/:friendshipId', async (req, res) => {
+    const { friendshipId } = req.params;
+    try {
+        const updateQuery = 'UPDATE friends SET status = "accepted" WHERE friendship_id = ?';
+        await connection.query(updateQuery, [friendshipId]);
+        res.json({ success: true, message: 'Freundschaftsanfrage akzeptiert.' });
+    } catch (error) {
+        console.error('Fehler:', error);
+        res.status(500).send('Serverfehler');
+    }
+});
+
+app.post('/decline-friendship/:friendshipId', async (req, res) => {
+    const { friendshipId } = req.params;
+    try {
+        const updateQuery = 'UPDATE friends SET status = "declined" WHERE friendship_id = ?';
+        await connection.query(updateQuery, [friendshipId]);
+        res.json({ success: true, message: 'Freundschaftsanfrage abgelehnt.' });
+    } catch (error) {
+        console.error('Fehler:', error);
+        res.status(500).send('Serverfehler');
+    }
+});
+
+
+app.post('/add-friend', async (req, res) => {
+    const { user_id1, user_id2 } = req.body;
+
+    if (!user_id1 || !user_id2) {
+        return res.status(400).json({ message: 'Benutzer-IDs fehlen' });
+    }
+
+    if (user_id1 === user_id2) {
+        return res.status(400).json({ message: 'Man kann sich nicht selbst als Freund hinzufügen' });
+    }
+
+    try {
+        const insertQuery = 'INSERT INTO friends (user_id1, user_id2, status) VALUES (?, ?, "pending")';
+        await connection.query(insertQuery, [user_id1, user_id2]);
+        res.json({ success: true, message: 'Freundschaftsanfrage gesendet' });
+    } catch (error) {
+        console.error('Fehler beim Senden der Freundschaftsanfrage:', error);
+        res.status(500).json({ success: false, message: 'Serverfehler', error });
+    }
+});
 
 
 // Für /get-user-name
@@ -287,6 +436,29 @@ app.get('/get-username', (req, res) => {
         res.status(401).json({ error: 'Nicht authentifiziert' });
     }
 });
+
+
+app.get('/get-user-id/:username', (req, res) => {
+    const username = req.params.username;
+
+    if (!username) {
+        return res.status(400).json({ message: 'Benutzername ist erforderlich.' });
+    }
+
+    const query = 'SELECT user_id FROM users WHERE username = ?';
+    connection.query(query, [username], (error, results) => {
+        if (error) {
+            console.error('Datenbankabfrage Fehler:', error);
+            return res.status(500).json({ message: 'Interner Serverfehler' });
+        }
+        if (results.length > 0) {
+            res.json({ userId: results[0].user_id });
+        } else {
+            res.status(404).json({ message: 'Benutzer nicht gefunden' });
+        }
+    });
+});
+
 
 
 // Another GET Path - call it with: http://localhost:8080/special_path
