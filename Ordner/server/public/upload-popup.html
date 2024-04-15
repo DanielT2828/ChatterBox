@@ -3,16 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <title>Datei-Upload</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #6fbf73 0%, #88c7c7 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 300px;
+            text-align: center;
+        }
+        input[type="file"] {
+            padding: 10px;
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: calc(100% - 22px);
+            cursor: pointer;
+            color: #007bff;
+            background-color: #e9ecef;
+            transition: background-color 0.3s ease-in-out;
+        }
+        input[type="file"]:hover {
+            background-color: #007bff;
+            color: white;
+        }
+        button {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+            width: 100%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.3s ease-in-out;
+        }
+        button:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+            background: linear-gradient(135deg, #0056b3 0%, #007bff 100%);
+        }
+        ::file-selector-button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            margin-right: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        ::file-selector-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
 </head>
 <body>
-    <h2>Datei-Upload</h2>
-    <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
-        <input type="hidden" name="senderId" id="senderId">
-        <input type="hidden" name="receiverId" id="receiverId">
-        <input type="file" name="datei">
-        <button type="submit">Hochladen</button>
-    </form>
-
+    <div class="container">
+        <h2>Datei-Upload</h2>
+        <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="senderId" id="senderId">
+            <input type="hidden" name="receiverId" id="receiverId">
+            <input type="file" name="datei">
+            <button type="submit">Hochladen</button>
+        </form>
+    </div>
     <script>
         // Funktion zum Extrahieren von URL-Parametern
         function getQueryParam(param) {

@@ -144,7 +144,7 @@ app.post('/upload', upload.single('datei'), async (req, res) => { // Hochladen e
 
     try {
         await newImage.save(); // Bild in der Datenbank speichern
-        res.send('Datei erfolgreich hochgeladen.'); // Erfolgsmeldung
+        res.redirect('/upload-success.html'); // Pfad zur Erfolgsmeldungsseite
     } catch (error) { // Fehlerbehandlung
         console.error('Fehler beim Speichern des Bildes:', error); // Fehlermeldung in der Konsole
         res.status(500).send('Fehler beim Speichern des Bildes.'); // Fehlermeldung an den Client
@@ -459,6 +459,27 @@ app.get('/get-user-id/:username', (req, res) => {
     });
 });
 
+
+app.get('/get-usernamee/:userId', (req, res) => {
+    const userId = req.params.userId;
+
+    if (!userId) {
+        return res.status(400).json({ message: 'Benutzer-ID ist erforderlich.' });
+    }
+
+    const query = 'SELECT username FROM users WHERE user_id = ?';
+    connection.query(query, [userId], (error, results) => {
+        if (error) {
+            console.error('Datenbankabfrage Fehler:', error);
+            return res.status(500).json({ message: 'Interner Serverfehler' });
+        }
+        if (results.length > 0) {
+            res.json({ username: results[0].username });
+        } else {
+            res.status(404).json({ message: 'Benutzer nicht gefunden' });
+        }
+    });
+});
 
 
 // Another GET Path - call it with: http://localhost:8080/special_path

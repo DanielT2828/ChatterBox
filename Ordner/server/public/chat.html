@@ -40,6 +40,7 @@
             background-color: #e9ecef;
             border-radius: 5px;
             width: fit-content;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
         #messageInput {
             width: calc(100% - 90px);
@@ -48,16 +49,19 @@
             border: 1px solid #ccc;
             border-radius: 5px;
         }
-        #sendButton {
+        #sendButton, #uploadButton {
             padding: 10px 20px;
             background-color: #28a745;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: background-color 0.2s, box-shadow 0.2s;
         }
-        #sendButton:hover {
+        #sendButton:hover, #uploadButton:hover {
             background-color: #218838;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
         }
         .chat-controls {
             display: flex;
@@ -71,12 +75,33 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            transition: background-color 0.2s;
         }
         #backButton:hover {
             background-color: #5a6268;
         }
         .chat-partner-name {
             font-weight: 500;
+            color: gold;
+            text-shadow: 0 0 5px gold;
+        }
+        .chat-partner-name:hover {
+            text-decoration: underline;
+        }
+        .image-archive {
+            padding: 10px;
+            border-top: 1px solid #ddd;
+        }
+        .images-container img {
+            width: 100px;
+            height: auto;
+            margin: 5px;
+            border-radius: 5px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .images-container img:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
         }
     </style>
 </head>
@@ -92,6 +117,11 @@
         <div class="chat-controls">
             <input type="text" id="messageInput" placeholder="Schreibe eine Nachricht...">
             <button id="sendButton" onclick="sendMessage()">Senden</button>
+            <button id="uploadButton" onclick="openUploadPopup()">Bild hochladen</button>
+        </div>
+        <div class="image-archive">
+            <h2>Bildarchiv</h2>
+            <div class="images-container" id="imagesContainer"></div>
         </div>
     </div>
 
@@ -143,49 +173,168 @@
     
         // Funktion zum Laden von Nachrichten
         function loadMessages() {
-            fetch(`/load-messages?userId=${userId}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Fehler beim Laden der Nachrichten');
-                }
-                return response.json();
-            })
-            .then(messages => {
-                const messagesContainer = document.getElementById('messages');
-                messagesContainer.innerHTML = ''; // Chat leeren
-                messages.forEach(message => {
-                    const messageElement = document.createElement('li');
-                    messageElement.textContent = `${message.sender_id === parseInt(userId) ? 'Sie: ' : 'Ich: '} ${message.text}`;
-                    messagesContainer.appendChild(messageElement);
-                });
-            })
-            .catch(error => {
-                console.error('Fehler:', error);
-            });
+    fetch(`/load-messages?userId=${userId}`)
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Fehler beim Laden der Nachrichten');
         }
-    
+        return response.json();
+    })
+    .then(messages => {
+        const messagesContainer = document.getElementById('messages');
+        messagesContainer.innerHTML = ''; // Chat leeren
+        messages.forEach(message => {
+            const messageElement = document.createElement('li');
+            const timestamp = new Date(message.timestamp);
+            const formattedDate = timestamp.toLocaleDateString('de-DE'); // Datum im Format TT.MM.JJJJ
+            const formattedTime = timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            // Stil für Benutzernamen und Datum hinzufügen
+            const usernameStyle = 'font-weight: bold; color: red;';
+            const dateStyle = 'font-weight: bold;';
+
+            // Nachricht mit Benutzernamen und Datum formatieren
+            const messageText = `[<span style="${usernameStyle}">${message.sender_username}</span>] (<span style="${dateStyle}">${formattedDate} ${formattedTime}</span>): ${message.text}`;
+
+            // Nachrichtenelement erstellen und HTML-Inhalt einfügen
+            messageElement.innerHTML = messageText;
+
+            // Nachrichtenelement zum Container hinzufügen
+            messagesContainer.appendChild(messageElement);
+        });
+        // Automatisch nach unten scrollen
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    })
+    .catch(error => {
+        console.error('Fehler:', error);
+    }); 
+}
+   // Abrufen und Anzeigen der Chat-Nachrichten
+async function loadChatMessages(currentChatUserId) {
+    if (!currentChatUserId) return;
+
+    try {
+        const response = await fetch(`/load-messages?userId=${currentChatUserId}`);
+        if (!response.ok) {
+            throw new Error('Fehler beim Laden der Nachrichten');
+        }
+        const messages = await response.json();
+        const messagesContainer = document.getElementById('chatMessages');
+        messagesContainer.innerHTML = '';
+
+        messages.forEach(message => {
+            const messageElement = document.createElement('div');
+            const timestamp = new Date(message.timestamp);
+            const formattedTime = timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            messageElement.innerHTML = `[${formattedTime}] <strong>${message.senderUsername}:</strong> ${message.text}`;
+            messagesContainer.appendChild(messageElement);
+        });
+
+    } catch (error) {
+        console.error('Fehler:', error);
+    }
+}
         // Funktion zum Laden des Chatpartner-Namens
-        function loadChatPartnerName() {
-            fetch(`/get-user-name?userId=${userId}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Fehler beim Laden des Chatpartners');
-                }
-                return response.json();
-            })
-            .then(data => {
-                document.getElementById('chatPartnerName').textContent = `Chat-Partner: ${data.username}`;
-            })
-            .catch(error => {
-                console.error('Fehler:', error);
-            });
-        }
     
-        // Rufe diese Funktionen auf, um den Namen beim Laden der Seite zu setzen und die Nachrichten zu laden
+        async function loadChatPartnerName() {
+    try {
+        const benutzername = await (async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const chatPartnerId = urlParams.get('userId');
+            const response = await fetch(`/get-usernamee/${chatPartnerId}`);
+            if (!response.ok) {
+                throw new Error('Fehler beim Laden des Chatpartners');
+            }
+            const data = await response.json();
+            return data.username;
+        })();
+        
+        document.getElementById('chatPartnerName').textContent = `Chat-Partner: ${benutzername}`;
+    } catch (error) {
+        console.error('Fehler:', error);
+    }
+}
+    
+   
+
         document.addEventListener('DOMContentLoaded', function() {
             loadChatPartnerName();
-            loadMessages();
+    loadMessages();
+    loadImagesForChat(); // Bilder beim Laden der Seite laden
+    setInterval(() => {
+        loadMessages(); // Nachrichten jede Sekunde aktualisieren
+        loadImagesForChat(); // Bilder regelmäßig aktualisieren
+    }, 1000);
+
+    // Event-Listener für das Nachrichteneingabefeld
+    document.getElementById('messageInput').addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault(); // Verhindern, dass ein Zeilenumbruch im Eingabefeld gemacht wird
+            sendMessage();
+        }
+    });
+});
+
+
+
+
+
+// Funktion zum Laden von Bildern für den Chat
+async function loadImagesForChat() {
+    try {
+        const senderId = sessionStorage.getItem('userId'); // Hole die aktuelle Benutzer-ID
+        const receiverId = getQueryParam('userId');
+
+        const response = await fetch(`/api/get-images-for-chat?senderId=${senderId}&receiverId=${receiverId}`);
+        const images = await response.json();
+
+        const imagesContainer = document.getElementById('imagesContainer');
+        imagesContainer.innerHTML = ''; // Vorherige Bilder löschen
+
+        images.forEach(image => {
+            const imgElement = document.createElement('img');
+            imgElement.src = image.path; // Stellen Sie sicher, dass der Pfad korrekt ist
+            imgElement.alt = 'Gesendetes Bild';
+            imagesContainer.appendChild(imgElement);
+
+            // Erstelle ein Element für das Hochladedatum und den Benutzernamen
+            const dateElement = document.createElement('div');
+            const uploadDate = new Date(image.createdAt);
+            const usernameDisplay = image.senderUsername || 'Unbekannter Benutzer'; // Verwende senderUsername, fallback auf 'Unbekannter Benutzer'
+            dateElement.textContent = `[${usernameDisplay}] : ${uploadDate.toLocaleString()}`; // Zeige Benutzernamen und Datum an
+            imagesContainer.appendChild(dateElement);
         });
+    } catch (error) {
+        console.error('Fehler beim Laden der Bilder:', error); // Fehlermeldung in der Konsole, wenn das Bild nicht geladen werden kann
+    }
+}
+
+async function fetchAndStoreUserId() {
+    try {
+        const response = await fetch('/api/get-current-user-id', {credentials: 'include'});
+        if (!response.ok) throw new Error('Failed to fetch user data');
+        const data = await response.json();
+        sessionStorage.setItem('userId', data.userId);
+    } catch (error) {
+        console.error('Error fetching user ID:', error);
+    }
+}
+
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    fetchAndStoreUserId();
+    loadImagesForChat(); // Bilder beim Laden der Seite laden
+});
+
+
+function openUploadPopup() {
+    const senderId = sessionStorage.getItem('userId');  // Hole die aktuelle Benutzer-ID
+    const receiverId = getQueryParam('userId');         // Empfänger-ID aus der URL
+
+    window.open(`/upload-popup.html?senderId=${senderId}&receiverId=${receiverId}`, 'Upload', 'width=400,height=300');
+}
+
     </script>
     
 </body>
