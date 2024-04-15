@@ -5,60 +5,82 @@
     <title>Freunde verwalten</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Roboto', sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f4f4f4;
-        }
-        .container {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            position: relative;
-        }
-        #usernameDisplay, #userIDDisplay {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            font-size: 16px;
-            color: #333;
-        }
-        #userIDDisplay {
-            left: auto;
-            right: 10px;
-        }
-        button {
-            padding: 10px 20px;
-            margin-top: 10px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            background-color: #007bff;
-            color: white;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        input[type="text"], select {
-            padding: 10px;
-            margin-top: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            width: calc(100% - 22px);
-        }
-        ul {
-            list-style-type: none;
-            padding: 0;
-        }
-        li {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-        }
-        .section {
-            margin-top: 20px;
-        }
+ body {
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: linear-gradient(135deg, #6fbf73 0%, #88c7c7 100%);
+    color: #fff;
+}
+
+.container {
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    position: relative;
+}
+
+h1, h2 {
+    color: #32a852; /* Glänzendes Grün für Überschriften */
+}
+
+#usernameDisplay, #userIDDisplay {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 16px;
+    color: #4a86e8; /* Heller Blauton für Benutzernamen und ID */
+}
+
+#userIDDisplay {
+    left: auto;
+    right: 10px;
+}
+
+button {
+    padding: 10px 20px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    background-color: #28a745;
+    color: white;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+button:hover {
+    background-color: #218838;
+    transform: translateY(-2px);
+}
+
+input[type="text"], select {
+    padding: 10px;
+    margin-top: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: calc(100% - 22px);
+    background: rgba(255, 255, 255, 0.8);
+    color: #333;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+li {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    background-color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 5px;
+    color: #32a852; /* Glänzendes Grün für Usernamen und IDs */
+}
+
+.section {
+    margin-top: 20px;
+}
+
     </style>
 </head>
 <body>
@@ -70,12 +92,12 @@
         <button onclick="addFriend()">Freund hinzufügen</button>
         
         <div class="friend-requests section">
-            <h2>Freundschaftsanfragen</h2>
+            <h2>Freundschaftsanfragen <button onclick="loadFriendRequests(sessionStorage.getItem('userId'))" style="background: none; border: none; cursor: pointer; color: #32a852; font-size: 24px;">⟳</button></h2>
             <ul id="friendRequests"></ul>
         </div>
-
+        
         <div class="friends-list section">
-            <h2>Meine Freunde</h2>
+            <h2>Meine Freunde <button onclick="loadFriends(sessionStorage.getItem('userId'))" style="background: none; border: none; cursor: pointer; color: #32a852; font-size: 24px;">⟳</button></h2>
             <ul id="friendsList"></ul>
         </div>
         
@@ -296,6 +318,26 @@ function removeFriend(friendId) {
         alert('Es gab einen Fehler beim Entfernen des Freundes.');
     });
 }
+
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    const userId = sessionStorage.getItem('userId');
+
+    // Initial das Laden der Daten beim Laden der Seite
+    loadFriendRequests(userId);
+    loadFriends(userId);
+
+    // Setzen der Intervalle für das automatische Neu-Laden
+    setInterval(() => {
+        loadFriendRequests(userId);
+    }, 5000); // Aktualisiert Freundschaftsanfragen alle 5 Sekunden
+
+    setInterval(() => {
+        loadFriends(userId);
+    }, 5000); // Aktualisiert die Freundesliste alle 5 Sekunden
+});
+
         </script>
         
 
