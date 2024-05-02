@@ -1,13 +1,15 @@
-CREATE DATABASE IF NOT EXISTS Benutzerdatenbank;
+
+
+CREATE DATABASE IF NOT EXISTS Benutzerdatenbank; -- Erstellt die Datenbank, wenn sie noch nicht existiert
 USE Benutzerdatenbank;
 
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE IF NOT EXISTS users ( -- Erstellt die Benutzer Tabelle, wenn sie noch nicht existiert
   user_id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(255) NOT NULL,
   password VARCHAR(255) NOT NULL
 );
 
-CREATE TABLE messages (
+CREATE TABLE IF NOT EXISTS messages ( -- Erstellt die Nachrichten Tabelle, wenn sie noch nicht existiert
     message_id INT AUTO_INCREMENT PRIMARY KEY,
     sender_id INT NOT NULL,
     receiver_id INT NOT NULL,
@@ -17,7 +19,7 @@ CREATE TABLE messages (
     FOREIGN KEY (receiver_id) REFERENCES users(user_id)
 );
 
-CREATE TABLE IF NOT EXISTS friends (
+CREATE TABLE IF NOT EXISTS friends ( -- Erstellt die Freunde Tabelle, wenn sie noch nicht existiert
   friendship_id INT AUTO_INCREMENT PRIMARY KEY,
   user_id1 INT NOT NULL,
   user_id2 INT NOT NULL,
